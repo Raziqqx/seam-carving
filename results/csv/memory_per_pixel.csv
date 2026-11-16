@@ -1,0 +1,3 @@
+structure,rows,cols,nodes,edges,bytes,bytes_per_pixel
+graph_cut_network,101,150,15152,60100,2946560,194.492
+dp_full_tables,101,150,0,0,121200,8
