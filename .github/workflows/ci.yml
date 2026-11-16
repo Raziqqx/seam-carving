@@ -1,0 +1,27 @@
+# Continuous integration (bonus 7c), first version: build and test.
+# Runs on every push and every pull request:
+#   1. build  - compile with -Wall -Wextra -Werror (any warning fails the build)
+#   2. test   - run the test suite with ctest
+# Milestone 4 extends this workflow with a formatting check, the interactive-app job and
+# build artifacts, and adds the release workflow.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libopencv-dev catch2 libboost-graph-dev
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSEAM_WERROR=ON
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j 4

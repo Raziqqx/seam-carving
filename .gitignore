@@ -1,0 +1,20 @@
+# Build output
+build/
+build-*/
+cmake-build-*/
+_deps/
+
+# Editor / OS files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Report intermediates (the final report.pdf IS committed)
+report/build/
