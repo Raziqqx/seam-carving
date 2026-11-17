@@ -36,7 +36,8 @@ The code is C++17, built with CMake, in one small library plus three programs.
   `std::invalid_argument` with a message; tests cover each case.
 - *Zero warnings.* The build uses `-Wall -Wextra -O2`; continuous integration adds
   `-Werror`, so a warning fails the build. Formatting is fixed by a committed
-  `.clang-format` and checked in CI.
+  `.clang-format` and checked in CI. CI builds and tests twice, with and without OpenMP,
+  so OpenMP stays an optional speed-up; if a test fails, the full test log is kept.
 
 ## Testing strategy
 
@@ -61,10 +62,11 @@ the command-line tool.
 | Horizontal seams | `horizontal == transpose(vertical(transpose))` for all three methods | `test_carve.cpp` |
 | Seam insertion | Size grows exactly; every original row is preserved in order; constant image stays constant; `insert_vertical_seam` undoes `remove_vertical_seam`; shrinking one way while enlarging the other reports duplicated pixels in original coordinates | `test_carve.cpp` |
 | Seam counting (item 2a-i) | Brute-force count equals the recurrence and lies within the proven bounds | `test_seam_count.cpp` |
-| Edge cases, all three methods | $1 \times 1$; one column ($n = 1$); $n = 2$; one row; constant image (all ties); gray against colour input; carving down to $1 \times 1$; $40 \times 3$ and $3 \times 40$ images; no overflow at the maximum energy | `test_edge_cases.cpp` |
+| Edge cases, all three methods | $1 \times 1$; $2 \times 2$ (all 4 seams, brute force); one column ($n = 1$); $n = 2$; one row; constant image (all ties); gray against colour input; 4-channel BGRA input keeps 4 channels and its alpha when shrinking and enlarging; carving down to $1 \times 1$; $40 \times 3$ and $3 \times 40$ images; no overflow at the maximum energy | `test_edge_cases.cpp` |
+| A column every horizontal seam must cross | Column of cost 1000 with one gap of 100: DP and graph cut cross at the gap (cost 100); greedy cannot see the gap in time and pays 1000 | `test_edge_cases.cpp` |
 | Optimised variants | Rolling-row DP = full DP (200 grids with many ties); OpenMP energy = serial; row-parallel DP = plain DP; incremental energy = full recomputation after every one of the seams | `test_dp.cpp`, `test_improvements.cpp` |
 | Visualisation | Exactly the seam pixels are painted; overlay marks each removed pixel once; one frame per seam, also when enlarging (frames as large as the target) | `test_visualize.cpp` |
-| Command-line tool | Runs every algorithm, forward energy, enlarging and frame export on a real image; rejects a bad option | `cli_end_to_end.cmake` |
+| Command-line tool | Runs every algorithm, forward energy, enlarging and frame export on a real image; `--help` exits 0; eight bad command lines (unknown algorithm or option, missing output name or value, non-numeric width, too large width or height, missing input file) exit with exactly code 1 | `cli_end_to_end.cmake` |
 
 **Why brute force.** For grids up to $6 \times 6$ we can list every seam (at most 950 of
 them) and take the true minimum. This is slow but obviously correct, so agreement on
@@ -79,6 +81,8 @@ command-line test and an app self-test case, so the same mistake cannot return u
 
 **What the tests found.** The cross-check between graph cut and DP is what exposed the
 last-column problem of the literal graph ([3.4](#graph-cut-item-4)). We kept both versions
-and turned the discovery into tests.
+and turned the discovery into tests. The command-line checks also found that `--width 0`
+and negative widths were silently treated as "keep the current width" instead of being
+rejected; the end-to-end test reports this as a warning until the tool is fixed.
 
 **Running the tests.** `cmake -S . -B build && cmake --build build -j && ctest --test-dir build`.
