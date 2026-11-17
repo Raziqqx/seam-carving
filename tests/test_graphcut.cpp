@@ -254,3 +254,78 @@ TEST_CASE("graphcut: extract_seam_from_cut takes the rightmost source-side pixel
                                               true, false, false, true,  false};
     CHECK(seam::extract_seam_from_cut(in_source_side, 2, 4) == Seam{2, 1});
 }
+
+TEST_CASE("graphcut: hand-traced max flow on a 2x2 image", "[graphcut][trace]") {
+    // Energy:   3 5      nodes: (0,0)=0 (0,1)=1 (1,0)=2 (1,1)=3, source 4, sink 5
+    //           4 1
+    // Seams: {0,0}=7, {0,1}=4, {1,0}=9, {1,1}=6, so the best is {0,1} with cost 4.
+    //
+    // Tracing Edmonds-Karp:
+    // path 1: s -> (0,0) -> (0,1) -> t, capacities inf, 3, 5, bottleneck 3, flow 3
+    // path 2: s -> (1,0) -> (1,1) -> t, capacities inf, 4, 1, bottleneck 1, flow 4
+    // After this (0,0)->(0,1) and (1,1)->t are full, so BFS can't reach t any more.
+    //
+    // BFS from s after the flow: (1,1) is reachable since (1,0)->(1,1) still has 3 left,
+    // (0,1) isn't since (0,0)->(0,1) is full. So S = {s, (0,0), (1,0), (1,1)}.
+    // Cut edges: (0,0)->(0,1) = 3 and (1,1)->t = 1, total 4 = max flow, seam {0, 1}.
+    const EnergyMap energy = test_support::make_energy({{3, 5}, {4, 1}});
+    seam::FlowNetwork network = seam::build_seam_graph(energy, SinkLink::EnergyToSink);
+    const int source = 4;
+    const int sink = 5;
+
+    CHECK(network.max_flow(source, sink) == 4);
+    CHECK(network.augmentation_count() == 2);
+
+    const std::vector<bool> in_source_side = network.reachable_from(source);
+    // order: (0,0), (0,1), (1,0), (1,1), source, sink
+    CHECK(in_source_side == std::vector<bool>{true, false, true, true, true, false});
+    CHECK(seam::extract_seam_from_cut(in_source_side, 2, 2) == Seam{0, 1});
+    CHECK(seam::find_vertical_seam_dp(energy) == Seam{0, 1});
+}
+
+TEST_CASE("graphcut: number of augmentations is at most the flow value", "[graphcut]") {
+    // Capacities are integers so each augmenting path pushes at least 1, meaning there
+    // can't be more augmentations than the flow value F (the O(F * E) bound in 6.2).
+    for (int rows = 1; rows <= 8; ++rows) {
+        for (int cols = 1; cols <= 8; ++cols) {
+            for (unsigned seed = 0; seed < 6; ++seed) {
+                const int max_value = (seed % 2 == 0) ? 50 : 3;
+                const EnergyMap energy = test_support::random_energy(rows, cols, max_value, seed);
+                const GraphCutResult cut = seam::find_vertical_seam_graphcut_detailed(energy);
+                INFO("size " << rows << " x " << cols << ", seed " << seed);
+                CHECK(cut.augmentations <= cut.max_flow);
+                // And a positive flow needs at least one augmenting path.
+                if (cut.max_flow > 0) {
+                    CHECK(cut.augmentations >= 1);
+                }
+            }
+        }
+    }
+
+    SECTION("all-zero image: no augmenting path at all") {
+        const EnergyMap energy(6, 7, 0);
+        const GraphCutResult cut = seam::find_vertical_seam_graphcut_detailed(energy);
+        CHECK(cut.max_flow == 0);
+        CHECK(cut.augmentations == 0);
+        // Every forward edge has capacity 0, so the residual BFS cannot leave the first
+        // column: S is just column 0 and the seam is column 0 in every row.
+        CHECK(cut.seam == Seam(6, 0));
+    }
+}
+
+TEST_CASE("graphcut: the 2x3 worked example from the report", "[graphcut][trace]") {
+    // Same numbers as the worked example in the report (section 3c). The literal graph
+    // can't use column 2 so it gets (1, 0) with cost 3 instead.
+    const EnergyMap energy = test_support::make_energy({{4, 1, 3}, {2, 5, 1}});
+    const GraphCutResult cut = seam::find_vertical_seam_graphcut_detailed(energy);
+    CHECK(cut.node_count == 8);
+    CHECK(cut.edge_count == 16);
+    CHECK(cut.max_flow == 2);
+    CHECK(cut.augmentations == 2);
+    CHECK(cut.seam == Seam{1, 2});
+
+    const GraphCutResult literal =
+        seam::find_vertical_seam_graphcut_detailed(energy, SinkLink::InfiniteToSink);
+    CHECK(literal.max_flow == 3);
+    CHECK(literal.seam == Seam{1, 0});
+}
