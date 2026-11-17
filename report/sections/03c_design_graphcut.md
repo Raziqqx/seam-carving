@@ -45,6 +45,37 @@ So finite cuts and seams correspond one to one with equal cost. The minimum cut 
 the minimum-energy seam, and by the max-flow min-cut theorem its capacity equals the maximum
 flow. **The max-flow value is the optimal seam cost**, the same number the DP finds.
 
+### Worked example (2 x 3)
+
+Small example to check the proof above by hand. Energy map (rows top to bottom):
+
+```
+4  1  3
+2  5  1
+```
+
+A seam picks one column per row, (c0, c1), with the two columns at most 1 apart, so there
+are 7 seams: (0,0)=6, (0,1)=9, (1,0)=3, (1,1)=6, (1,2)=2, (2,1)=8, (2,2)=4. The best one is
+(1,2) with cost 2.
+
+The graph has $V = 8$ nodes and $E = 4 \cdot 6 - 4 - 6 + 2 = 16$ edges. Edmonds-Karp finds
+2 augmenting paths, one along each row:
+
+- $s \to (0,0) \to (0,1) \to (0,2) \to t$, capacities 4, 1, 3, so it pushes 1 (flow = 1)
+- $s \to (1,0) \to (1,1) \to (1,2) \to t$, capacities 2, 5, 1, so it pushes 1 (flow = 2)
+
+Now $(0,1) \to (0,2)$ and $(1,2) \to t$ are full and there is no path left to $t$ (nothing
+infinite goes into $(0,2)$ since diagonal edges only point left). The BFS from $s$ reaches
+$(0,0), (0,1), (1,0), (1,1), (1,2)$, so $S$ is those plus $s$, and $T = \{(0,2), t\}$. The
+edges cut are $(0,1) \to (0,2)$ (capacity 1) and $(1,2) \to t$ (capacity 1), total 2, which
+matches the max flow. Taking the rightmost $S$ pixel in each row gives seam (1, 2), same as
+the DP. Row 1 can be one column to the right of row 0 because the diagonal edge
+$(1,2) \to (0,1)$ only needs $(0,1)$ to be in $S$, which it is.
+
+With the literal infinite sink link from the brief, $(1,2)$ can't be in $S$, so the best it
+can do is (1,0) with cost 3 instead of 2. So this small grid already shows the problem in
+the finding below.
+
 ### Finding: the graph exactly as worded in the brief cannot remove the last column
 
 The brief connects every last-column pixel to the sink with *infinite* capacity. We
