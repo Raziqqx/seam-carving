@@ -234,6 +234,23 @@ other energies are simply copied, shifted left by one where they were right of t
 `update_gradient_energy_after_removal` does this with $4m$ Sobel evaluations instead of
 $mn$, and a test checks after *every* seam that the result equals a full recomputation.
 
+**At the borders** the band is clipped to the new image, whose width is $n-1$: row $i$
+recomputes the columns $\max(\text{seam}[i]-2,\,0)$ to $\min(\text{seam}[i]+1,\,n-2)$.
+Concretely:
+
+- seam at column 0: columns 0 and 1 (two columns; nothing lies to the left);
+- seam at column 1: columns 0, 1 and 2;
+- seam in the last column $n-1$: the last two columns of the new image, $n-3$ and $n-2$.
+  Column $n-2$ must be recomputed even though its pixel did not move: its right
+  neighbour was the removed pixel, and now the border clamp makes it its own right
+  neighbour;
+- seam in column $n-2$: columns $n-4$ to $n-2$, the last three;
+- a 2-column image ($n = 2$): only column 0 is left and it is recomputed in every row.
+
+These cases need fewer than four Sobel evaluations per row, so $4m$ is an upper bound.
+Two tests try *every* possible seam on a 1-row image (where the clamp also applies above
+and below every pixel) and on a 2-column image, and compare with a full recomputation.
+
 *Table 8. Removing @@inc_seams@@ seams from a @@inc_size@@ image with DP.*
 
 <!-- include: generated/table_incremental.md -->
