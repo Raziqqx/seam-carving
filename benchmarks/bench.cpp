@@ -7,7 +7,8 @@
 // "repetition"); the report uses the median and quotes the range.
 //   size     runtime of ONE seam search for growing image sizes
 //   seams    cumulative runtime while removing more and more seams
-//   cost     total seam cost and runtime of each algorithm on the three test images
+//   cost     total seam cost and runtime of each algorithm on the three test images and
+//            on a synthetic checkerboard
 //   improve  item 5d experiments: memory, OpenMP threads, incremental energy
 //   memory   bytes per pixel of the graph-cut network and of the DP tables
 //   visual   result pictures: seam carving vs scaling vs cropping, seam overlays, video
@@ -44,6 +45,12 @@ using seam::EnergyMode;
 using seam::Seam;
 
 const std::vector<std::string> kImageNames = {"tower", "bridge", "castle"};
+// Synthetic checkerboard for the cost experiment: the same width as the photos, and a
+// square size that gives a whole number of squares across.
+const int kCheckerboardRows = 350;
+const int kCheckerboardCols = 500;
+const int kCheckerboardSquare = 25;
+
 const Algorithm kAllAlgorithms[] = {Algorithm::DynamicProgramming, Algorithm::Greedy,
                                     Algorithm::GraphCut};
 
@@ -83,6 +90,25 @@ cv::Mat load_image(const std::string& inputs_dir, const std::string& name) {
     const cv::Mat image = cv::imread(path, cv::IMREAD_COLOR);
     if (image.empty()) {
         throw std::runtime_error("could not read " + path);
+    }
+    return image;
+}
+
+// Black-and-white checkerboard of `square` x `square` pixel squares, as a 3-channel image.
+// Why it is a useful test: its energy is zero except on the two pixel rows/columns either
+// side of each square border, so the cheapest possible seam is known by hand. A vertical
+// seam can stay inside one column of squares, but it must cross every horizontal border,
+// and each crossing costs 2 rows x 1020 (the largest Sobel response). The plotting script
+// checks that DP finds exactly that cost.
+// Time and space O(rows * cols).
+cv::Mat make_checkerboard(int rows, int cols, int square) {
+    cv::Mat image(rows, cols, CV_8UC3);
+    for (int row = 0; row < rows; ++row) {
+        for (int col = 0; col < cols; ++col) {
+            const bool white = ((row / square) + (col / square)) % 2 == 0;
+            const uchar value = white ? 255 : 0;
+            image.at<cv::Vec3b>(row, col) = cv::Vec3b(value, value, value);
+        }
     }
     return image;
 }
@@ -241,6 +267,49 @@ CarveResult carve_and_count_optimal(const cv::Mat& image, int count, Direction d
     return seam::remove_seams(image, count, direction, options, check);
 }
 
+// Removes 30 % of the width and of the height of one image with every algorithm (graph
+// cut only on the small copies) and with both energies (forward energy only with DP), and
+// writes one CSV row per run. Each run is timed once, then repeated untimed to count the
+// optimal steps.
+void run_cost_on_image(std::ofstream& csv, const std::string& label, const cv::Mat& image) {
+    const bool is_small = (image.cols == kSmallWidth);
+    for (Direction direction : {Direction::Vertical, Direction::Horizontal}) {
+        const int size = (direction == Direction::Vertical) ? image.cols : image.rows;
+        const int count = size * 3 / 10;  // remove 30 %
+
+        for (Algorithm algorithm : kAllAlgorithms) {
+            if (algorithm == Algorithm::GraphCut && !is_small) {
+                continue;  // too slow on the full-size images
+            }
+            for (EnergyMode mode : {EnergyMode::Gradient, EnergyMode::Forward}) {
+                if (mode == EnergyMode::Forward && algorithm != Algorithm::DynamicProgramming) {
+                    continue;  // forward energy is DP-only
+                }
+                CarveOptions options;
+                options.algorithm = algorithm;
+                options.energy_mode = mode;
+
+                CarveResult result;
+                int optimal_steps = 0;
+                // Timed run without the checking callback...
+                const double time_ms = time_once_ms(
+                    [&] { result = seam::remove_seams(image, count, direction, options); });
+                // ...then an untimed run that counts the optimal steps.
+                carve_and_count_optimal(image, count, direction, options, optimal_steps);
+
+                csv << label << "," << image.rows << "," << image.cols << ","
+                    << seam::to_string(direction) << "," << seam::to_string(algorithm) << ","
+                    << seam::to_string(mode) << "," << count << "," << result.seams.front().cost
+                    << "," << result.total_cost << "," << optimal_steps << "," << time_ms << ","
+                    << total_energy(image) << "," << total_energy(result.image) << "\n";
+                std::cout << "cost: " << label << " " << seam::to_string(direction) << " "
+                          << seam::to_string(algorithm) << " " << seam::to_string(mode) << " total "
+                          << result.total_cost << std::endl;
+            }
+        }
+    }
+}
+
 void run_cost_experiment(const std::string& inputs_dir, const std::string& output_dir) {
     std::ofstream csv =
         open_csv(output_dir, "seam_cost.csv",
@@ -249,50 +318,13 @@ void run_cost_experiment(const std::string& inputs_dir, const std::string& outpu
 
     for (const std::string& name : kImageNames) {
         const cv::Mat full = load_image(inputs_dir, name);
-        const std::vector<std::pair<std::string, cv::Mat>> inputs = {
-            {name, full}, {name + "_small", scale_to_width(full, kSmallWidth)}};
-
-        for (const auto& [label, image] : inputs) {
-            const bool is_small = (image.cols == kSmallWidth);
-            for (Direction direction : {Direction::Vertical, Direction::Horizontal}) {
-                const int size = (direction == Direction::Vertical) ? image.cols : image.rows;
-                const int count = size * 3 / 10;  // remove 30 %
-
-                for (Algorithm algorithm : kAllAlgorithms) {
-                    if (algorithm == Algorithm::GraphCut && !is_small) {
-                        continue;  // too slow on the full-size images
-                    }
-                    for (EnergyMode mode : {EnergyMode::Gradient, EnergyMode::Forward}) {
-                        if (mode == EnergyMode::Forward &&
-                            algorithm != Algorithm::DynamicProgramming) {
-                            continue;  // forward energy is DP-only
-                        }
-                        CarveOptions options;
-                        options.algorithm = algorithm;
-                        options.energy_mode = mode;
-
-                        CarveResult result;
-                        int optimal_steps = 0;
-                        // Timed run without the checking callback...
-                        const double time_ms = time_once_ms(
-                            [&] { result = seam::remove_seams(image, count, direction, options); });
-                        // ...then an untimed run that counts the optimal steps.
-                        carve_and_count_optimal(image, count, direction, options, optimal_steps);
-
-                        csv << label << "," << image.rows << "," << image.cols << ","
-                            << seam::to_string(direction) << "," << seam::to_string(algorithm)
-                            << "," << seam::to_string(mode) << "," << count << ","
-                            << result.seams.front().cost << "," << result.total_cost << ","
-                            << optimal_steps << "," << time_ms << "," << total_energy(image) << ","
-                            << total_energy(result.image) << "\n";
-                        std::cout << "cost: " << label << " " << seam::to_string(direction) << " "
-                                  << seam::to_string(algorithm) << " " << seam::to_string(mode)
-                                  << " total " << result.total_cost << std::endl;
-                    }
-                }
-            }
-        }
+        run_cost_on_image(csv, name, full);
+        run_cost_on_image(csv, name + "_small", scale_to_width(full, kSmallWidth));
     }
+    // Full size only: scaling a checkerboard down would blur its sharp borders, and the
+    // point of this image is that its borders are perfectly sharp.
+    run_cost_on_image(csv, "checkerboard",
+                      make_checkerboard(kCheckerboardRows, kCheckerboardCols, kCheckerboardSquare));
 }
 
 // ---------------------------------------------------------------------------------------

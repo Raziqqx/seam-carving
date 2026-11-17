@@ -31,6 +31,10 @@ STYLE = {
     "graphcut": {"color": "#1baf7a", "marker": "^", "label": "Graph cut (Edmonds-Karp)"},
 }
 IMAGES = ["tower", "bridge", "castle"]
+# Synthetic image made by bench.cpp (full size only, DP and greedy only).
+CHECKERBOARD = "checkerboard"
+CHECKERBOARD_SQUARE = 25  # must match kCheckerboardSquare in bench.cpp
+SOBEL_MAX = 1020  # largest Sobel response of 8-bit data: 4 * 255
 TEXT_COLOUR = "#333333"
 GRID_COLOUR = "#dddddd"
 
@@ -298,6 +302,36 @@ def plot_runtime_vs_seams(rows, repetitions, figures, generated, facts):
     facts["seams_gc_seconds"] = f"{small_gc / 1000:.1f}"
 
 
+def checkerboard_rows(pick, facts):
+    """Table 3 rows for the synthetic checkerboard, plus a check against the hand-derived
+    cheapest seam. Its energy is SOBEL_MAX on the two pixel lines either side of each square
+    border and 0 elsewhere, so a seam that stays inside one row/column of squares costs
+    2 * SOBEL_MAX per border it must cross, and no seam can cost less."""
+    rows = []
+    for direction in ["vertical", "horizontal"]:
+        dp = pick(CHECKERBOARD, direction, "dp")
+        greedy = pick(CHECKERBOARD, direction, "greedy")
+        # A vertical seam crosses the borders between rows of squares, a horizontal one
+        # the borders between columns of squares.
+        length = int(dp["rows"]) if direction == "vertical" else int(dp["cols"])
+        borders = (length - 1) // CHECKERBOARD_SQUARE
+        cheapest = borders * 2 * SOBEL_MAX
+        if int(dp["first_seam_cost"]) != cheapest:
+            raise SystemExit(f"DP's first checkerboard seam ({direction}) costs "
+                             f"{dp['first_seam_cost']}, expected {cheapest}")
+        ratio = int(greedy["total_cost"]) / int(dp["total_cost"])
+        facts[f"checker_borders_{direction}"] = str(borders)
+        facts[f"checker_cheapest_{direction}"] = fmt_int(cheapest)
+        facts[f"checker_dp_at_bound_{direction}"] = \
+            "every" if int(dp["total_cost"]) == cheapest * int(dp["seams"]) else "not every"
+        facts[f"cost_ratio_checkerboard_{direction}"] = f"{ratio:.2f}"
+        rows.append([CHECKERBOARD, f"{dp['cols']} x {dp['rows']}", direction, dp["seams"],
+                     fmt_int(dp["total_cost"]), fmt_int(greedy["total_cost"]), f"{ratio:.2f}x",
+                     f"{greedy['optimal_steps']} / {greedy['seams']}",
+                     fmt_ms(dp["time_ms"]), fmt_ms(greedy["time_ms"])])
+    return rows
+
+
 def cost_tables(rows, figures, generated, facts):
     def pick(image, direction, algo, energy="gradient"):
         return next(r for r in rows if r["image"] == image and r["direction"] == direction
@@ -317,6 +351,7 @@ def cost_tables(rows, figures, generated, facts):
                          fmt_int(dp["total_cost"]), fmt_int(greedy["total_cost"]), f"{ratio:.2f}x",
                          f"{greedy['optimal_steps']} / {greedy['seams']}",
                          fmt_ms(dp["time_ms"]), fmt_ms(greedy["time_ms"])])
+    full.extend(checkerboard_rows(pick, facts))
     write_table(generated / "table_cost_full.md",
                 ["Image", "Size (w x h)", "Seams", "Count", "DP total cost", "Greedy total cost",
                  "Greedy / DP", "Greedy steps that were optimal", "DP time (ms)",
