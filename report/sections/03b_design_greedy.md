@@ -31,6 +31,14 @@ it can only reach columns 0 and 1, where everything costs 9. DP starts at the sl
 expensive 2, from which the cheap right column is reachable. The first choice looked best
 locally and was wrong globally.
 
+**How bad can it get?** The same trap works for any number of rows. Take an m x 3 grid
+whose top row is 1, 2, 9 and whose other rows are 9, 9, 1. Greedy starts in column 0 and
+stays there, paying 1 + 9(m-1). DP starts in column 1 at cost 2 and moves to the cheap
+column 2 on each row, paying 2 + (m-1). The ratio of greedy's cost to DP's cost is
+(1 + 9(m-1)) / (2 + (m-1)). For m = 3 this is 19/4, the 3x3 example. As m grows
+the ratio approaches 9 but never exceeds it, so this family does not show unbounded growth.
+Greedy's ratio is bounded for this family; the bound of 9 comes from the trap value 9 itself.
+
 **What greedy does guarantee.** The seam is always valid (one pixel per row, neighbours at
 most one column apart), and its cost can never be below the DP cost, because DP is the
 minimum over all valid seams. Both facts are tested on 500 random grids, together with a
