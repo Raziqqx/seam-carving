@@ -44,6 +44,39 @@ bool same_image(const cv::Mat& a, const cv::Mat& b) {
     return cv::countNonZero(difference.reshape(1)) == 0;
 }
 
+// Random BGRA image: random colours, and every pixel has the same alpha value.
+// A constant alpha lets the test see whether the alpha channel survived carving.
+// Time and space O(rows * cols).
+cv::Mat random_bgra(int rows, int cols, unsigned seed, uchar alpha) {
+    const cv::Mat bgr = test_support::random_colour(rows, cols, seed);
+    cv::Mat bgra(rows, cols, CV_8UC4);
+    for (int row = 0; row < rows; ++row) {
+        for (int col = 0; col < cols; ++col) {
+            const cv::Vec3b colour = bgr.at<cv::Vec3b>(row, col);
+            bgra.at<cv::Vec4b>(row, col) = cv::Vec4b(colour[0], colour[1], colour[2], alpha);
+        }
+    }
+    return bgra;
+}
+
+// Carves a BGRA image to (cols x rows) with one algorithm and checks that the result is
+// still BGRA, has the right size, and that no alpha value was changed.
+// Time: one carve_to_size call plus O(rows * cols) for the alpha check.
+void check_bgra_carve(const cv::Mat& bgra, Algorithm algorithm, int cols, int rows) {
+    CarveOptions options;
+    options.algorithm = algorithm;
+    const CarveResult result = seam::carve_to_size(bgra, cols, rows, options);
+    CHECK(result.image.type() == CV_8UC4);
+    CHECK(result.image.size() == cv::Size(cols, rows));
+
+    // Whole pixels are removed or inserted (an inserted pixel is the average of two
+    // neighbours), so with a constant alpha every output alpha must still be that value.
+    cv::Mat alpha;
+    cv::extractChannel(result.image, alpha, 3);
+    const uchar expected_alpha = bgra.at<cv::Vec4b>(0, 0)[3];
+    CHECK(cv::countNonZero(alpha != expected_alpha) == 0);
+}
+
 }  // namespace
 
 TEST_CASE("edge: 1x1 image has exactly one seam", "[edge]") {
@@ -74,6 +107,91 @@ TEST_CASE("edge: two-pixel-wide image (n = 2)", "[edge]") {
         REQUIRE(seam::is_valid_seam(seam, 4, 2));
         CHECK(seam == Seam{1, 0, 1, 0});
         CHECK(seam::seam_cost(energy, seam) == 4);
+    }
+}
+
+// 2 x 2 is the smallest image where the seam has a real choice in every row. There are
+// exactly 4 seams, so the brute force checks all of them.
+// DP is milestone 1 (already on main), so its checks come BEFORE the skip: they run on
+// every branch, and the other algorithms are added once their milestones are merged.
+TEST_CASE("edge: 2x2 image (smallest image with a choice in every row)", "[edge]") {
+    const EnergyMap energy = test_support::make_energy({{3, 1}, {2, 5}});
+    // Seam costs: {0,0} = 5, {0,1} = 8, {1,0} = 3, {1,1} = 6, so {1,0} is the unique best.
+    REQUIRE(test_support::all_seams(2, 2).size() == 4);
+    REQUIRE(test_support::brute_force_min_cost(energy) == 3);
+    CHECK(seam::find_vertical_seam_dp(energy) == Seam{1, 0});
+    CHECK(seam::find_vertical_seam_dp_rolling(energy) == Seam{1, 0});
+
+    // Carving a 2 x 2 colour image all the way down to 1 x 1 removes exactly 2 seams.
+    const cv::Mat image = test_support::random_colour(2, 2, 21);
+    const CarveResult dp_result = seam::carve_to_size(image, 1, 1, CarveOptions{});
+    CHECK(dp_result.image.size() == cv::Size(1, 1));
+    CHECK(dp_result.seams.size() == 2);
+
+    test_support::require_all_seam_finders();
+    for (Algorithm algorithm : kAllAlgorithms) {
+        // Greedy also finds it here: the cheapest top pixel (col 1) leads straight to the
+        // cheapest pixel below it (col 0).
+        CHECK(find_with(algorithm, energy) == Seam{1, 0});
+
+        CarveOptions options;
+        options.algorithm = algorithm;
+        const CarveResult result = seam::carve_to_size(image, 1, 1, options);
+        CHECK(result.image.size() == cv::Size(1, 1));
+        CHECK(result.seams.size() == 2);
+    }
+}
+
+// A horizontal seam runs from the left edge to the right edge with one pixel in EVERY
+// column, so it cannot go around an expensive column: it has to cross it, and the best
+// seam crosses at the one cheap gap. The library finds a horizontal seam as the vertical
+// seam of the transpose (carve.cpp, find_seam), so this test does the same.
+TEST_CASE("edge: every horizontal seam must cross an expensive column", "[edge]") {
+    // 7 rows x 5 cols. Column 2 costs 1000 in every row except row 5 (the gap, 100).
+    // Everything else costs 0, so the cheapest horizontal seam costs exactly 100.
+    EnergyMap energy(7, 5, 0);
+    for (int row = 0; row < energy.rows; ++row) {
+        energy(row, 2) = 1000;
+    }
+    energy(5, 2) = 100;
+
+    // Transposed: 5 rows x 7 cols; old column 2 is now row 2 and the gap is at column 5.
+    EnergyMap transposed;
+    cv::transpose(energy, transposed);
+    REQUIRE(test_support::brute_force_min_cost(transposed) == 100);
+
+    const Seam dp = seam::find_vertical_seam_dp(transposed);
+    REQUIRE(seam::is_valid_seam(dp, transposed.rows, transposed.cols));
+    CHECK(dp[2] == 5);  // the horizontal seam crosses column 2 in row 5, the gap
+    CHECK(seam::seam_cost(transposed, dp) == 100);
+
+    test_support::require_all_seam_finders();
+    const Seam graphcut = seam::find_vertical_seam_graphcut(transposed);
+    REQUIRE(seam::is_valid_seam(graphcut, transposed.rows, transposed.cols));
+    CHECK(graphcut[2] == 5);
+    CHECK(seam::seam_cost(transposed, graphcut) == 100);
+
+    // Greedy cannot see the gap coming. Every top-row pixel costs 0, so it starts at the
+    // leftmost one (col 0) and goes straight down on ties (greedy.hpp). A seam moves at
+    // most one column per row, so by row 2 it can only be at col 0 or 1: both cost 1000.
+    // This is the "valid but not optimal" behaviour of greedy on a simple example.
+    const Seam greedy = seam::find_vertical_seam_greedy(transposed);
+    REQUIRE(seam::is_valid_seam(greedy, transposed.rows, transposed.cols));
+    CHECK(seam::seam_cost(transposed, greedy) == 1000);
+}
+
+// PNG files can carry an alpha channel (BGRA, 4 channels). The energy is computed from
+// the colour, but whole pixels, alpha included, are removed and inserted, so the output
+// must still have 4 channels and an unchanged alpha. Shrinking and enlarging both checked.
+TEST_CASE("edge: 4-channel (BGRA) image keeps 4 channels and the right size", "[edge]") {
+    const cv::Mat bgra = random_bgra(8, 10, 31, 200);
+    check_bgra_carve(bgra, Algorithm::DynamicProgramming, 7, 6);   // shrink both ways
+    check_bgra_carve(bgra, Algorithm::DynamicProgramming, 13, 6);  // wider and shorter
+
+    test_support::require_all_seam_finders();
+    for (Algorithm algorithm : kAllAlgorithms) {
+        check_bgra_carve(bgra, algorithm, 7, 6);
+        check_bgra_carve(bgra, algorithm, 13, 6);
     }
 }
 
