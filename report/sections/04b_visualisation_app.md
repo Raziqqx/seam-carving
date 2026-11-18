@@ -41,9 +41,11 @@ Two views are produced by `src/visualize.cpp`:
   difference, forward);
 - see the result immediately when a slider is released, with the seam count, total cost and
   time;
-- switch the view between the result, all seams on the original, the energy map, and a
+- switch the view between the result, all seams on the original, the energy map (of the
+  selected energy; the gradient map for forward energy, which is not a per-pixel map), and a
   **step-by-step replay** with a slider over the seam number;
-- save the result.
+- save the result (`result.png`) and the picture of all seams on the original
+  (`seams.png`).
 
 Graph cut is started only by the *Carve now* button and the app warns when the image is
 large, because of the runtimes in [5.2](#runtime). The app is an optional build target

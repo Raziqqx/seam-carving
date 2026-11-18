@@ -1,6 +1,10 @@
 // Tests for the seam visualisation helpers (bonus 7a).
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <filesystem>
+#include <opencv2/imgcodecs.hpp>
+#include <string>
+#include <vector>
 
 #include "seam/carve.hpp"
 #include "seam/visualize.hpp"
@@ -128,4 +132,59 @@ TEST_CASE("visualize: colourise_energy gives a colour image of the same size", "
 
 TEST_CASE("visualize: write_video refuses an empty frame list", "[visualize]") {
     CHECK_FALSE(seam::write_video("unused.mp4", {}, 30.0));
+}
+
+TEST_CASE("visualize: write_frames keeps every n-th frame and always the last one", "[visualize]") {
+    // 7 frames, frame i filled with gray value 10 * i so each file can be identified.
+    std::vector<cv::Mat> frames;
+    for (int index = 0; index < 7; ++index) {
+        frames.push_back(cv::Mat(2, 3, CV_8UC3, cv::Scalar::all(10 * index)));
+    }
+    const std::filesystem::path folder =
+        std::filesystem::temp_directory_path() / "seam_test_write_frames";
+    std::filesystem::remove_all(folder);
+    std::filesystem::create_directories(folder);
+    const std::string prefix = (folder / "frame").string();
+
+    // every 3rd: indices 0, 3, 6 (6 is also the last one).
+    CHECK(seam::write_frames(prefix, frames, 3) == 3);
+    CHECK(std::filesystem::exists(prefix + "_0000.png"));
+    CHECK(std::filesystem::exists(prefix + "_0003.png"));
+    CHECK(std::filesystem::exists(prefix + "_0006.png"));
+    CHECK_FALSE(std::filesystem::exists(prefix + "_0001.png"));
+    const cv::Mat reread = cv::imread(prefix + "_0003.png", cv::IMREAD_COLOR);
+    REQUIRE_FALSE(reread.empty());
+    CHECK(reread.at<cv::Vec3b>(0, 0) == cv::Vec3b(30, 30, 30));
+
+    // every 4th: indices 0 and 4, plus the last one (6), which is not a multiple of 4.
+    std::filesystem::remove_all(folder);
+    std::filesystem::create_directories(folder);
+    CHECK(seam::write_frames(prefix, frames, 4) == 3);
+    CHECK(std::filesystem::exists(prefix + "_0004.png"));
+    CHECK(std::filesystem::exists(prefix + "_0006.png"));
+
+    // A step of 0 must not divide by zero: it keeps every frame.
+    std::filesystem::remove_all(folder);
+    std::filesystem::create_directories(folder);
+    CHECK(seam::write_frames(prefix, frames, 0) == 7);
+
+    std::filesystem::remove_all(folder);
+}
+
+TEST_CASE("visualize: write_video writes 3 small frames to an MP4 file", "[visualize]") {
+    std::vector<cv::Mat> frames;
+    for (int index = 0; index < 3; ++index) {
+        frames.push_back(cv::Mat(16, 16, CV_8UC3, cv::Scalar::all(80 * index)));
+    }
+    const std::filesystem::path path =
+        std::filesystem::temp_directory_path() / "seam_test_write_video.mp4";
+    std::filesystem::remove(path);
+
+    if (!seam::write_video(path.string(), frames, 10.0)) {
+        // Some OpenCV builds have no MP4 writer (no video backend): not our bug.
+        SKIP("this OpenCV build cannot write MP4 files");
+    }
+    CHECK(std::filesystem::exists(path));
+    CHECK(std::filesystem::file_size(path) > 0);
+    std::filesystem::remove(path);
 }

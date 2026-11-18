@@ -6,8 +6,8 @@
 //                                      display (for example a CI runner)
 //
 // The user loads an image, drags the width/height sliders, picks the algorithm and energy,
-// and sees the resized image. The view can be switched to "all seams on the original",
-// the energy map, or a step-by-step replay with a slider.
+// and sees the resized image. The result and a picture of all seams can be saved. The view can be
+// switched to "all seams on the original", the energy map, or a step-by-step replay with a slider.
 //
 // Layout of this file:
 //   AppState            everything the window shows, in one struct
@@ -136,9 +136,16 @@ cv::Mat picture_for_view(const AppState& state) {
             return state.result.image;
         case ViewMode::AllSeams:
             return seam::draw_all_seams(state.original, state.result.seams);
-        case ViewMode::Energy:
+        case ViewMode::Energy: {
+            // Show the energy the user picked. Forward energy is not a per-pixel map (it
+            // is computed inside the DP), so for it the gradient map is shown instead.
+            seam::EnergyMode mode = options_of(state).energy_mode;
+            if (mode == seam::EnergyMode::Forward) {
+                mode = seam::EnergyMode::Gradient;
+            }
             return seam::colourise_energy(
-                seam::compute_gradient_energy(seam::to_grayscale(state.original)));
+                seam::compute_energy(seam::to_grayscale(state.original), mode));
+        }
         case ViewMode::StepByStep:
             if (!state.step_frames.empty()) {
                 return state.step_frames[state.step_index];
@@ -148,6 +155,16 @@ cv::Mat picture_for_view(const AppState& state) {
             return state.original;
     }
     return state.original;
+}
+
+// Saves the original image with every seam of the last resize drawn on it (red = vertical,
+// green = horizontal). Returns false if there is nothing to save or the file could not be
+// written. Time O(rows * cols + number of seam pixels).
+bool save_seams_picture(const AppState& state, const std::string& path) {
+    if (state.original.empty()) {
+        return false;
+    }
+    return cv::imwrite(path, seam::draw_all_seams(state.original, state.result.seams));
 }
 
 // An OpenGL texture showing one cv::Mat. The destructor frees the texture (RAII).
@@ -204,6 +221,11 @@ void draw_controls(AppState& state) {
     if (ImGui::Button("Save result as result.png") && !state.result.image.empty()) {
         const bool saved = cv::imwrite("result.png", state.result.image);
         state.status = saved ? "Saved result.png" : "Could not save result.png";
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Save seams picture as seams.png") && !state.original.empty()) {
+        const bool saved = save_seams_picture(state, "seams.png");
+        state.status = saved ? "Saved seams.png" : "Could not save seams.png";
     }
     ImGui::Separator();
 
@@ -341,6 +363,17 @@ int run_selftest(const std::string& image_path) {
                 std::cerr << "selftest FAILED: empty picture\n";
                 return 1;
             }
+        }
+        // The "Save seams picture" button: the file must be written and re-readable at the
+        // size of the original.
+        const std::string seams_path = "selftest_seams.png";
+        const cv::Mat reread = save_seams_picture(state, seams_path)
+                                   ? cv::imread(seams_path, cv::IMREAD_COLOR)
+                                   : cv::Mat();
+        std::remove(seams_path.c_str());
+        if (reread.size() != state.original.size()) {
+            std::cerr << "selftest FAILED: seams picture not saved\n";
+            return 1;
         }
     }
     std::cout << "selftest passed\n";

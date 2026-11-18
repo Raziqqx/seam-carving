@@ -126,6 +126,9 @@ bool write_video(const std::string& path, const std::vector<cv::Mat>& frames, do
 
 // Writes every n-th frame (and the last one) as a numbered PNG file.
 int write_frames(const std::string& prefix, const std::vector<cv::Mat>& frames, int every_nth) {
+    // A step below 1 would make `index % every_nth` divide by zero (or keep nothing),
+    // so it is treated as 1: keep every frame.
+    every_nth = std::max(every_nth, 1);
     int written = 0;
     const int last = static_cast<int>(frames.size()) - 1;
     for (int index = 0; index <= last; ++index) {
