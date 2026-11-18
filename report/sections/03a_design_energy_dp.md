@@ -53,7 +53,7 @@ $$ C_L = C_U + |I[i-1][j] - I[i][j-1]|, \qquad C_R = C_U + |I[i-1][j] - I[i][j+1
 
 for steps from the upper-left and upper-right. This cost depends on the *direction of the
 step*, not only on the pixel, so it is added inside the minimum of the DP recurrence
-(`find_vertical_seam_dp_forward`). Results are in [5.4](#forward-energy).
+(`find_vertical_seam_dp_forward`). Results are in [5.5](#forward-energy).
 
 ## Dynamic programming (item 1b)
 

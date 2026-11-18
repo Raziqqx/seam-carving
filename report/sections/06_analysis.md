@@ -270,7 +270,7 @@ triangle of cells that the changed energies can influence.
 
 ### Forward energy
 
-Forward energy ([3.1](#energy-map-item-1a), [5.4](#forward-energy)) improves *quality* at
+Forward energy ([3.1](#energy-map-item-1a), [5.5](#forward-energy)) improves *quality* at
 the same asymptotic cost: the DP is still $\Theta(mn)$, with a slightly larger constant
 because the step cost is evaluated for each of the three parents. It adds the least new
 edge energy on all three test images (Table 5) and visibly keeps lines straighter.
