@@ -141,7 +141,8 @@ TEST_CASE("greedy: how often it is optimal on random grids", "[greedy]") {
                 ++optimal_count;
             }
         }
-        INFO("grid " << size << " x " << size << ": optimal in " << optimal_count << " of "<< trials);
+        INFO("grid " << size << " x " << size << ": optimal in " << optimal_count << " of "
+                     << trials);
         CHECK(optimal_count > 0);
         CHECK(optimal_count < trials);
     }
