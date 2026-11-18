@@ -35,11 +35,9 @@ slides/         presentation deck, speaker notes and demo script
 
 ## Milestones
 
-The work is merged in six milestones, one per team member. `main` starts with milestone 1;
-each other milestone lives on its own branch and is merged through a pull request that must
-pass CI. Until a milestone is merged, its functions are placeholders that throw
-`seam::NotImplementedYet`: the tools then print "not implemented yet", and tests that need
-the missing part are reported as skipped.
+The work was split into six milestones, one per team member. Milestone 1 (the scaffold) was
+pushed to `main` directly; milestones 2 to 6 each lived on their own branch and were merged
+into `main` through pull requests whose CI checks passed. All six are now merged.
 
 | # | Owner | Branch | Contents |
 |---|---|---|---|
@@ -123,7 +121,9 @@ cmake --build build-app -j --target seamcarve_app
 ```
 
 Drag the width and height sliders, choose the algorithm and energy, and switch the view
-between the result, all seams, the energy map and a step-by-step replay. Dear ImGui v1.90.4
+between the result, all seams, the energy map and a step-by-step replay. **Save result**
+writes `result.png`; **Save seams picture** writes `seams.png` (all seams on the original).
+Dear ImGui v1.90.4
 is downloaded by CMake on the first configure. `seamcarve_app --selftest <image>` checks the
 app's logic without opening a window.
 
@@ -158,7 +158,8 @@ if it is not found automatically.
 
 - **CI** (`.github/workflows/ci.yml`): every push and pull request is linted with
   clang-format, built with `-Wall -Wextra -Werror`, and tested (Catch2 suite, command-line
-  end-to-end test, app self-test).
+  end-to-end test, app self-test). The build-and-test job runs twice, with OpenMP on and
+  off, and every job has a 20-minute timeout.
 - **CD** (`.github/workflows/release.yml`): pushing a version tag publishes a GitHub Release
   with the tested `seamcarve` binary, the report PDF and the slides:
 
