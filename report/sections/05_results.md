@@ -38,7 +38,7 @@ copies scaled down to 150 pixels wide.
 **One seam, growing image size** (Figure 7, Table 1). The seam-search time excludes the
 energy map, which is the same for all three methods and is listed separately.
 
-![Figure 7. Time to find one seam against the number of pixels (both axes logarithmic).](figures/fig_runtime_vs_size.png){width=70%}
+![Figure 7. Time to find one seam against the number of pixels (both axes logarithmic).](figures/fig_runtime_vs_size.png){width=55%}
 
 *Table 1. Time for one seam search (median of @@repetitions@@ repetitions, with the range).*
 
@@ -46,7 +46,7 @@ energy map, which is the same for all three methods and is listed separately.
 
 The two "ns per pixel" columns of Table 1 are the most direct check of the DP's
 complexity. In the fastest of the @@repetitions@@ repetitions the seam search costs
-between @@dp_ns_per_pixel_best_range@@ ns per pixel at every size from 6,700 to 6.9 million
+from @@dp_ns_per_pixel_best_range@@ ns per pixel at every size from 6,700 to 6.9 million
 pixels; a constant cost per pixel is exactly what $\Theta(mn)$ means. The median column
 (@@dp_ns_per_pixel_range@@ ns) is the same except where a repetition was disturbed, most
 visibly at the largest size (discussed below).
@@ -65,7 +65,7 @@ observation is the most reliable; the fit through the medians is shown for compa
 DP is linear in the number of pixels, as predicted. The one place where single
 measurements stray is the largest image (@@dp_largest_size@@): there the three repetitions
 ranged from @@dp_largest_ms_range@@ ms, a factor of @@dp_largest_spread@@. This is
-measurement noise and not super-linear growth: every call allocates two fresh tables of
+measurement noise and not super-linear growth: every call allocates two fresh tables, together
 about @@dp_largest_table_mb@@ MB, which under WSL2 means thousands of page faults whose cost varies from run to
 run, and the same function on a similar-sized image in Table 6 runs at the usual cost per
 pixel. Greedy grows roughly like $\sqrt N$ because it only walks down the $m$ rows after one
@@ -86,8 +86,9 @@ and the removal.
 
 On the full image, DP needs @@seams_total_ms_dp_tower@@ ms for
 @@seams_count_tower@@ seams and greedy @@seams_total_ms_greedy_tower@@ ms. Greedy's seam
-search is hundreds of times faster than DP's (Table 1), yet the whole loop is only
-@@loop_speedup_greedy@@ times faster (range @@loop_speedup_greedy_range@@), because every step still computes an energy map and
+search is about 100 times faster than DP's at @@size_dp_500@@ and several hundred times
+faster on the largest images (Table 1), yet the whole loop is only
+@@loop_speedup_greedy@@ times faster (@@loop_speedup_greedy@@ in each of the @@repetitions@@ repetitions), because every step still computes an energy map and
 copies the image, both $\Theta(mn)$, whichever seam finder is used. Graph cut needs @@seams_gc_seconds@@ s for @@seams_count_tower_small@@ seams
 on the small @@seams_size_tower_small@@ copy.
 
@@ -119,18 +120,21 @@ even greedy's seams are cheap.
 
 **The checkerboard: a case with a known answer.** On the checkerboard every pixel has
 energy 0 except on the two pixel lines either side of a square border, where the Sobel
-response is the largest possible, $4 \times 255 = 1020$. A vertical seam can stay inside
+response is $4 \times 255 = 1020$ (the largest value one component, $|G_x|$ or $|G_y|$, can
+take). A vertical seam can stay inside
 one column of squares and so avoid every vertical border, but it cannot avoid crossing the
 @@checker_borders_vertical@@ horizontal borders, and each crossing costs
 $2 \times 1020 = 2040$. The cheapest vertical seam therefore costs exactly
 $@@checker_borders_vertical@@ \times 2040 = @@checker_cheapest_vertical@@$ (horizontal seams:
 @@checker_borders_horizontal@@ borders, @@checker_cheapest_horizontal@@). DP's first seam has
 exactly this cost (the plotting script stops with an error otherwise), and
-@@checker_dp_at_bound_vertical@@ one of DP's vertical seams reaches this lower bound. This
+@@checker_dp_at_bound_vertical@@ one of DP's vertical seams and every horizontal seam
+reaches this lower bound. This
 gives a check of DP's optimality that does not rely on comparing against another of our own
-programs. Greedy removes @@cost_ratio_checkerboard_vertical@@ times as much energy as DP
-with vertical seams and @@cost_ratio_checkerboard_horizontal@@ times as much with horizontal
-ones. The checkerboard is left out of the "between ... and ..." range above, so that range
+programs. Greedy does just as well here (ratio @@cost_ratio_checkerboard_vertical@@ and
+@@cost_ratio_checkerboard_horizontal@@; every greedy step was optimal): it starts in column
+0, which has zero energy, goes straight down, and the border crossings it pays for cannot be
+avoided by any seam. The checkerboard is left out of the "between ... and ..." range above, so that range
 describes the photos only.
 
 **All three methods, small images** (Table 4).

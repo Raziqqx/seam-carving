@@ -100,9 +100,9 @@ bottom row and follow the parents up to row 0.
 1. *Optimal substructure* (shown above): an optimal solution is built from optimal
    solutions of smaller problems.
 2. *Overlapping subproblems*: a naive recursion on the recurrence calls itself up to three
-   times per row, so its running time is exponential: it visits every seam, which is
-   $\Theta(n \lambda_n^{\,m}) \subseteq O(n \cdot 3^m)$ by item 2a-i. But there are only
-   $mn$ different subproblems.
+   times per row, so its running time is exponential: it visits every seam, which by item
+   2a-i means between $n \cdot 2^{m-1}$ and $n \cdot 3^{m-1}$ calls for $n \ge 2$
+   (exponential in $m$). But there are only $mn$ different subproblems;
    $M[i-1][j]$ alone is needed by three cells of row $i$. Solving each subproblem once and
    storing it in a table gives $\Theta(mn)$ time.
 3. *A valid order exists*: row $i$ depends only on row $i - 1$, so filling the table from
@@ -144,8 +144,9 @@ wins only when $k^2$ is larger than about $\log(mn)$ times the constant factor o
 which means large kernels (wide blurs, template matching). For a $3 \times 3$ kernel it is
 *slower*: 9 integer operations per pixel are replaced by about
 $\log_2(500 \cdot 339) \approx 17$ complex floating-point butterfly steps per pixel for each
-of three transforms, plus extra memory and rounding errors that our exact integer energies
-would not tolerate.
+of three transforms, plus extra memory. Floating-point rounding is not the obstacle (for a
+$3 \times 3$ kernel, rounding the result to the nearest integer would recover the exact
+integer energies); the cost is.
 
 **Separable kernels.** The Sobel kernel is an outer product of two 1-D filters,
 $[1\;2\;1]^T \cdot [-1\;0\;1]$. Filtering the rows with one and the columns with the other

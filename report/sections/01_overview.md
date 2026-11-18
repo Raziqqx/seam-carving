@@ -23,8 +23,8 @@ This report covers everything the assignment asks for:
 **What we built.** A C++17 library with three seam finders (dynamic programming, greedy and
 a minimum cut solved by our own Edmonds-Karp max-flow), all of which work for vertical and
 horizontal seams; seam insertion for enlarging; forward energy; a command-line tool; an
-interactive app; a step-by-step animation; a test suite of @@test_cases@@ test cases
-(@@test_assertions@@ checks); and a benchmark program that regenerates every number, table
+interactive app; a step-by-step animation; a test suite of @@test_cases@@ Catch2 test cases
+(@@test_assertions@@ checks) plus one command-line end-to-end test; and a benchmark program that regenerates every number, table
 and figure below. OpenCV is used only for reading and writing images, colour conversion,
 the Sobel filter, plain scaling for the baselines, and video output. No content-aware
 resizing function from any library is used.
@@ -33,7 +33,8 @@ resizing function from any library is used.
 
 - DP and graph cut both return a minimum-energy seam; in our tests their costs are equal on
   every random grid and equal to the max-flow value. Greedy is never cheaper and removes
-  @@cost_ratio_min@@ to @@cost_ratio_max@@ times as much energy on our test images.
+  @@cost_ratio_min@@ to @@cost_ratio_max@@ times as much energy on our three photographs (and exactly as much on the synthetic
+  checkerboard).
 - Finding one seam in a @@size_dp_500@@ image takes @@seam_ms_dp_500@@ ms with DP and
   about @@gc_500_seconds@@ s with graph cut (Edmonds-Karp). Graph cut is correct but
   impractical for this problem.

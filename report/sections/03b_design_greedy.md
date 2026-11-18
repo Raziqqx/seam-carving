@@ -31,13 +31,15 @@ it can only reach columns 0 and 1, where everything costs 9. DP starts at the sl
 expensive 2, from which the cheap right column is reachable. The first choice looked best
 locally and was wrong globally.
 
-**How bad can it get?** The same trap works for any number of rows. Take an m x 3 grid
-whose top row is 1, 2, 9 and whose other rows are 9, 9, 1. Greedy starts in column 0 and
-stays there, paying 1 + 9(m-1). DP starts in column 1 at cost 2 and moves to the cheap
-column 2 on each row, paying 2 + (m-1). The ratio of greedy's cost to DP's cost is
-(1 + 9(m-1)) / (2 + (m-1)). For m = 3 this is 19/4, the 3x3 example. As m grows
-the ratio approaches 9 but never exceeds it, so this family does not show unbounded growth.
-Greedy's ratio is bounded for this family; the bound of 9 comes from the trap value 9 itself.
+**How bad can it get?** The same trap works for any number of rows. Take an $m \times 3$
+grid whose top row is 1, 2, 9 and whose other rows are 9, 9, 1. Greedy starts in column 0
+and stays there, paying $1 + 9(m-1)$. DP starts in column 1 at cost 2 and moves to the cheap
+column 2 on each row, paying $2 + (m-1)$. For $m \ge 2$ the ratio of greedy's cost to DP's is
+$(1 + 9(m-1))/(2 + (m-1)) = (9m-8)/(m+1)$: $19/4$ for $m = 3$ (the $3 \times 3$ example),
+approaching the trap value 9 as $m$ grows. So this family's ratio is bounded, but greedy has
+no constant-factor guarantee in general: lower the cheap values by one (top row 0, 1, 9;
+other rows 9, 9, 0). Greedy still starts in column 0 and pays $9(m-1)$, while DP pays
+only 1, so the ratio $9(m-1)$ grows linearly with the number of rows.
 
 **What greedy does guarantee.** The seam is always valid (one pixel per row, neighbours at
 most one column apart), and its cost can never be below the DP cost, because DP is the

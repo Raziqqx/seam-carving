@@ -116,7 +116,8 @@ both pay the same $\Theta(mn)$ energy and copy steps for every seam.
 
 **Greedy against DP.** Greedy's only advantage is the speed of the seam search itself,
 which in the complete loop is mostly hidden by the energy map and the removal: a
-@@dp_vs_greedy_3200@@-fold difference in seam-search time on a @@size_dp_3200@@ image
+@@dp_vs_greedy_3200@@-fold difference in median seam-search time on a @@size_dp_3200@@
+image (the noisy point of Table 1; with DP's fastest repetition it is still over 300-fold)
 becomes @@dp_total_3200@@ ms against @@greedy_total_3200@@ ms once the energy map is
 included, and the complete loop of Figure 8 is only @@loop_speedup_greedy@@ times faster.
 In exchange its seams cost @@cost_ratio_min@@ to @@cost_ratio_max@@ times more energy, and
@@ -153,8 +154,9 @@ returns the same seam as the full version (tested on 200 grids).
 <!-- include: generated/table_memory.md -->
 
 The table memory drops from @@mem_full_mb@@ MB to @@mem_rolling_mb@@ MB
-(@@mem_ratio@@x less) for a @@mem_size@@ image, with essentially the same running time
-(@@mem_full_ms@@ ms against @@mem_rolling_ms@@ ms). Going further is possible: 2 bits per
+(@@mem_ratio@@x less) for a @@mem_size@@ image, and the seam search even becomes slightly
+faster (@@mem_full_ms@@ ms against @@mem_rolling_ms@@ ms; the rolling version was faster in
+each of the @@repetitions@@ repetitions). Going further is possible: 2 bits per
 step would give 32x; and a divide-and-conquer scheme in the style of Hirschberg's algorithm
 (find where the optimal seam crosses the middle row using a forward and a backward cost
 pass, then recurse on the two halves) needs only $O(n)$ extra space, at the price of
@@ -198,17 +200,20 @@ On the large @@threads_large_size@@ image the energy map reaches a speed-up of
 @@threads_energy_large_best@@x with @@threads_energy_large_best_n@@ threads (the best
 speed-up ranged from @@threads_energy_large_best_range@@x over the repetitions), while the
 row-parallel DP table reaches only @@threads_dp_table_large_best@@x at best. On the small
-@@threads_small_size@@ image the row-parallel DP gains nothing (best:
-@@threads_dp_table_small_best@@x of the plain loop's speed), because a row of 500 cells
+@@threads_small_size@@ image the row-parallel DP gains nothing (best: 0.55x of the plain loop's speed, with one
+thread; Table 7), because a row of 500 cells
 takes less time than waking the threads up.
 
 Three details of Table 7 need explaining:
 
-- *One OpenMP thread is slower than the serial function* (below 1x), although both do the
+- *One OpenMP thread is usually no faster than the serial function*, although both do the
   same work: the OpenMP version pays for starting a parallel region, and for the DP it pays
-  that once per row.
+  that once per row (0.55x and 0.66x). For the large energy map the cost is visible as well
+  (0.84x); for the small one the difference is within the run-to-run noise (its 1-thread
+  result varied between 0.86x and 1.21x over the repetitions).
 - *The curve is not smooth, and going from 4 to 8 threads can gain little or even lose*
-  (@@threads_energy_large_4@@x and @@threads_energy_large_8@@x here). The CPU is a hybrid
+  (small energy map: @@threads_energy_small_4@@x and @@threads_energy_small_8@@x; large DP
+table: @@threads_dp_table_large_4@@x and @@threads_dp_table_large_8@@x). The CPU is a hybrid
   design with 6 fast performance cores (12 hardware threads) and 8 slower efficiency cores.
   Up to about 6 threads each thread can have a fast core to itself; beyond that, threads
   share a core through hyper-threading or land on efficiency cores, and a `static`
