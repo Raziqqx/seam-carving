@@ -470,7 +470,8 @@ def improvement_tables(results, figures, generated, facts):
                 if r["threads"] != "0"}
 
     sizes = sorted({(int(r["cols"]), int(r["rows"])) for r in rows})
-    fig, axes = plt.subplots(1, len(sizes), figsize=(10.5, 3.9), sharey=True)
+    # Smaller canvas than the other wide figures, so the labels stay readable on a slide.
+    fig, axes = plt.subplots(1, len(sizes), figsize=(8.0, 3.5), sharey=True)
     stage_style = {"energy": ("#2a78d6", "o", "Energy map"),
                    "dp_table": ("#eb6834", "s", "DP table (parallel inside each row)")}
     table = []
