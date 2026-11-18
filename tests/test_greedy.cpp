@@ -94,8 +94,11 @@ TEST_CASE("greedy: ties go straight down", "[greedy]") {
 }
 
 TEST_CASE("greedy: optimal when a straight zero-energy column exists", "[greedy]") {
-    // Greedy provably matches DP for this class of input: if a whole column has zero energy,
-    // the cheapest seam is that column (cost 0), and greedy finds it.
+    // Greedy matches DP for this class of input: if a whole column has zero energy, the
+    // cheapest seam is that column (cost 0), and greedy finds it PROVIDED it starts at the
+    // top of that column, i.e. that column holds the leftmost minimum of the top row
+    // (greedy starts at the leftmost minimum; another zero further left would start it
+    // elsewhere).
     // Column 1 is all zeros, the rest are 5. Greedy starts there and every step is a tie
     // that goes straight down, so it stays in column 1 and matches DP's zero-cost seam.
     EnergyMap energy(4, 3, 5);

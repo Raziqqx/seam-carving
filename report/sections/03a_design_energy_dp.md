@@ -25,8 +25,9 @@ $$ e[i][j] = |G_x(i, j)| + |G_y(i, j)|, $$
 $$ G_x = \begin{bmatrix} -1 & 0 & 1 \\ -2 & 0 & 2 \\ -1 & 0 & 1 \end{bmatrix} * I, \qquad
    G_y = \begin{bmatrix} -1 & -2 & -1 \\ 0 & 0 & 0 \\ 1 & 2 & 1 \end{bmatrix} * I. $$
 
-A pixel in a flat area (sky) has energy near 0; a pixel on an edge has a high energy, up to
-$2 \cdot 1020 = 2040$.
+A pixel in a flat area (sky) has energy near 0; a pixel on an edge has a high energy, at
+most 1530 ($|G_x|$ and $|G_y|$ cannot both reach 1020 at once; we use the simple bound
+$2 \cdot 1020 = 2040$ below).
 
 **Boundary handling.** Pixels outside the image are read as the nearest border pixel
 ("replicate"; `clamp_index` in our code, `BORDER_REPLICATE` in OpenCV). We chose this over

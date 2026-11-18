@@ -42,7 +42,8 @@ Two views are produced by `src/visualize.cpp`:
 - see the result immediately when a slider is released, with the seam count, total cost and
   time;
 - switch the view between the result, all seams on the original, the energy map (of the
-  selected energy; the gradient map for forward energy, which is not a per-pixel map), and a
+  selected energy, refreshed whenever a setting changes; the gradient map for forward
+  energy, which is not a per-pixel map), and a
   **step-by-step replay** with a slider over the seam number;
 - save the result (`result.png`) and the picture of all seams on the original
   (`seams.png`).
@@ -60,11 +61,15 @@ three jobs:
 
 1. **lint**: `clang-format --dry-run --Werror` on every source file;
 2. **build-and-test**: install OpenCV, Catch2 and Boost with `apt-get`, build with
-   `-Wall -Wextra -Werror`, run the whole test suite with `ctest`;
+   `-Wall -Wextra -Werror`, run the whole test suite with `ctest`. This job runs twice, as a
+   matrix with OpenMP switched on and off, so the code never depends on OpenMP; if a test
+   fails, the full test log is kept as an artifact;
 3. **app**: build the interactive app and run its headless self-test.
 
-Every milestone is merged into `main` through a pull request that must pass these jobs. On
-`main` the built command-line tool and the report PDF are also uploaded as build artifacts.
+Every job has a 20-minute timeout, so a hanging test cannot block CI. Milestones 2 to 6 were
+merged into `main` through pull requests whose CI checks passed (milestone 1, the scaffold,
+was pushed to `main` directly). On `main` the built command-line tool and the report PDF
+are also uploaded as build artifacts.
 
 `.github/workflows/release.yml` is the **CD** part. Pushing a version tag (for example
 `v1.0.0`) builds the project again, runs the tests, and publishes a GitHub Release with the

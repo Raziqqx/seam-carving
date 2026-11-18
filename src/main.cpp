@@ -19,9 +19,6 @@
 
 namespace {
 
-// Exit code used when the requested feature belongs to a milestone that is not merged yet.
-const int kExitNotImplementedYet = 3;
-
 // Everything the user can set on the command line.
 struct Arguments {
     std::string input_path;
@@ -65,6 +62,26 @@ std::string take_value(const std::vector<std::string>& tokens, size_t& index) {
     return tokens[index];
 }
 
+// Converts the value of a size option such as "--width 300" to a whole number >= 1.
+// Rejects "abc", "10abc" (trailing characters) and values below 1 with a clear message,
+// so a bad size never reaches the carving code. Time O(length of text).
+int parse_positive_int(const std::string& text, const std::string& option) {
+    size_t characters_read = 0;
+    int value = 0;
+    try {
+        value = std::stoi(text, &characters_read);
+    } catch (const std::exception&) {
+        throw std::invalid_argument(option + " needs a whole number, got \"" + text + "\"");
+    }
+    if (characters_read != text.size()) {
+        throw std::invalid_argument(option + " needs a whole number, got \"" + text + "\"");
+    }
+    if (value < 1) {
+        throw std::invalid_argument(option + " must be at least 1, got " + text);
+    }
+    return value;
+}
+
 Arguments parse_arguments(const std::vector<std::string>& tokens) {
     Arguments arguments;
     std::vector<std::string> positional;
@@ -78,9 +95,9 @@ Arguments parse_arguments(const std::vector<std::string>& tokens) {
         } else if (token == "--energy") {
             arguments.options.energy_mode = seam::parse_energy_mode(take_value(tokens, index));
         } else if (token == "--width") {
-            arguments.target_width = std::stoi(take_value(tokens, index));
+            arguments.target_width = parse_positive_int(take_value(tokens, index), token);
         } else if (token == "--height") {
-            arguments.target_height = std::stoi(take_value(tokens, index));
+            arguments.target_height = parse_positive_int(take_value(tokens, index), token);
         } else if (token == "--seams-image") {
             arguments.seams_image_path = take_value(tokens, index);
         } else if (token == "--video") {
@@ -88,7 +105,7 @@ Arguments parse_arguments(const std::vector<std::string>& tokens) {
         } else if (token == "--frames") {
             arguments.frames_prefix = take_value(tokens, index);
         } else if (token == "--frame-step") {
-            arguments.frame_step = std::stoi(take_value(tokens, index));
+            arguments.frame_step = parse_positive_int(take_value(tokens, index), token);
         } else if (token == "--energy-image") {
             arguments.energy_image_path = take_value(tokens, index);
         } else if (token.rfind("--", 0) == 0) {
@@ -141,7 +158,7 @@ int run(const Arguments& arguments) {
     if (!arguments.energy_image_path.empty()) {
         const seam::EnergyMode map_mode =
             (arguments.options.energy_mode == seam::EnergyMode::Forward)
-                ? seam::EnergyMode::NeighbourDifference
+                ? seam::EnergyMode::Gradient
                 : arguments.options.energy_mode;
         const seam::EnergyMap energy = seam::compute_energy(seam::to_grayscale(image), map_mode);
         save_image(arguments.energy_image_path, seam::colourise_energy(energy));
@@ -191,11 +208,6 @@ int main(int argc, char** argv) {
             return 0;
         }
         return run(arguments);
-    } catch (const seam::NotImplementedYet& error) {
-        // A feature whose milestone has not been merged yet. A separate exit code lets the
-        // end-to-end test tell "not there yet" apart from a real failure.
-        std::cerr << error.what() << "\n";
-        return kExitNotImplementedYet;
     } catch (const std::exception& error) {
         std::cerr << "error: " << error.what() << "\n";
         std::cerr << "run 'seamcarve --help' for usage\n";

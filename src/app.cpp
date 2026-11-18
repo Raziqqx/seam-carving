@@ -252,6 +252,12 @@ void draw_controls(AppState& state) {
                 "image of this size. Use a small image, or few seams.");
         }
 
+        if (settings_changed) {
+            // The energy view depends on the chosen energy, so redraw it even when no
+            // carve runs (live update off, or graph cut selected).
+            state.picture_changed = true;
+        }
+
         ImGui::Checkbox("Update when a slider is released", &state.live_update);
         const bool button_pressed = ImGui::Button("Carve now");
         // Graph cut is never started automatically, only by the button.
@@ -343,11 +349,6 @@ int run_selftest(const std::string& image_path) {
         std::cout << "selftest algorithm " << check.algorithm_index << ": " << state.status << "\n";
         const bool size_ok = state.result.image.cols == state.target_width &&
                              state.result.image.rows == state.target_height;
-        if (state.status.find("not implemented yet") != std::string::npos) {
-            // This check needs a milestone that has not been merged yet: not a failure.
-            std::cout << "selftest: skipped (feature not merged yet)\n";
-            continue;
-        }
         const bool reported_error = state.status.rfind("Error", 0) == 0;
         // One replay frame per seam plus the final picture.
         const bool frames_ok = state.step_frames.size() == state.result.seams.size() + 1;
@@ -364,6 +365,16 @@ int run_selftest(const std::string& image_path) {
                 return 1;
             }
         }
+        // The energy view for each energy choice (forward energy shows the gradient map).
+        state.view = ViewMode::Energy;
+        for (int energy_index = 0; energy_index < 3; ++energy_index) {
+            state.energy_index = energy_index;
+            if (picture_for_view(state).size() != state.original.size()) {
+                std::cerr << "selftest FAILED: energy view " << energy_index << "\n";
+                return 1;
+            }
+        }
+        state.energy_index = 0;
         // The "Save seams picture" button: the file must be written and re-readable at the
         // size of the original.
         const std::string seams_path = "selftest_seams.png";

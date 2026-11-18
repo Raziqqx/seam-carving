@@ -181,7 +181,8 @@ def plot_runtime_vs_size(rows, repetitions, figures, generated, facts):
     axis.set_xlabel("Image size (pixels, log scale)")
     axis.set_ylabel("Time to find one seam (ms, log scale)")
     axis.set_title("Finding one seam: runtime vs image size", color=TEXT_COLOUR)
-    axis.legend(loc="lower right")
+    # Legend in the empty area right of the graph-cut line and above the DP line.
+    axis.legend(loc="upper right", bbox_to_anchor=(1.0, 0.86))
     fig.savefig(figures / "fig_runtime_vs_size.png")
     plt.close(fig)
     write_table(generated / "table_runtime_size.md",
@@ -469,7 +470,8 @@ def improvement_tables(results, figures, generated, facts):
                 if r["threads"] != "0"}
 
     sizes = sorted({(int(r["cols"]), int(r["rows"])) for r in rows})
-    fig, axes = plt.subplots(1, len(sizes), figsize=(10.5, 3.9), sharey=True)
+    # Smaller canvas than the other wide figures, so the labels stay readable on a slide.
+    fig, axes = plt.subplots(1, len(sizes), figsize=(8.0, 3.5), sharey=True)
     stage_style = {"energy": ("#2a78d6", "o", "Energy map"),
                    "dp_table": ("#eb6834", "s", "DP table (parallel inside each row)")}
     table = []

@@ -5,7 +5,8 @@ We implemented seam carving three ways and compared them on the same pipeline.
 - **Dynamic programming** is exact, linear in the number of pixels and simple. It is the
   method to use.
 - **Greedy** has a faster seam search but removes @@cost_ratio_min@@ to @@cost_ratio_max@@
-  times as much energy, visibly damages the subject, and makes the full loop only
+  times as much energy on our three photographs (and exactly as much on the synthetic
+  checkerboard), visibly damages the subject, and makes the full loop only
   @@loop_speedup_greedy@@ times faster. The hand-built $3 \times 3$ grid shows why a local choice cannot be trusted.
 - **Graph cut** reaches the same optimum as DP, confirmed on every random grid we tried,
   provided the last column is linked to the sink with its energy rather than with infinite

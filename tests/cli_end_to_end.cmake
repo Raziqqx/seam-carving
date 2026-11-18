@@ -2,29 +2,19 @@
 # cleanly and writes its output files. Called by ctest (see CMakeLists.txt).
 file(MAKE_DIRECTORY ${OUTPUT_DIR})
 
-# seamcarve exits with code 3 when the requested feature belongs to a milestone that has
-# not been merged yet. Such a step is counted as skipped, not as a failure.
-set(skipped_steps 0)
-set(last_step_skipped FALSE)
-
+# Runs seamcarve with the given arguments; any non-zero exit code fails the test.
 macro(run_seamcarve)
     execute_process(COMMAND ${SEAMCARVE} ${ARGN} RESULT_VARIABLE exit_code OUTPUT_VARIABLE output
         ERROR_VARIABLE error_output)
-    if(exit_code EQUAL 3)
-        math(EXPR skipped_steps "${skipped_steps} + 1")
-        set(last_step_skipped TRUE)
-        message(STATUS "skipped: ${error_output}")
-    elseif(NOT exit_code EQUAL 0)
+    if(NOT exit_code EQUAL 0)
         message(FATAL_ERROR "seamcarve ${ARGN} failed with exit code ${exit_code}: ${error_output}")
-    else()
-        set(last_step_skipped FALSE)
-        message(STATUS "${output}")
     endif()
+    message(STATUS "${output}")
 endmacro()
 
-# Checks that an output file exists, unless the step that should write it was skipped.
+# Checks that an output file exists.
 function(require_file path)
-    if(NOT last_step_skipped AND NOT EXISTS ${path})
+    if(NOT EXISTS ${path})
         message(FATAL_ERROR "expected output file is missing: ${path}")
     endif()
 endfunction()
@@ -63,8 +53,7 @@ require_file(${OUTPUT_DIR}/mixed_seams.png)
 require_file(${OUTPUT_DIR}/mixed_0039.png)
 
 # Runs seamcarve with the given arguments and checks the exact exit code.
-# For bad input the code must be 1 ("rejected cleanly"), not 3: 3 means "feature not
-# merged yet", and bad input must be rejected before any milestone's code is reached.
+# For bad input the code must be 1 ("rejected cleanly").
 function(expect_exit_code expected description)
     execute_process(COMMAND ${SEAMCARVE} ${ARGN} RESULT_VARIABLE exit_code
         OUTPUT_QUIET ERROR_QUIET)
@@ -89,20 +78,8 @@ expect_exit_code(1 "input file does not exist" ${OUTPUT_DIR}/no_such_file.png
 expect_exit_code(1 "--width 5000 (10x the width)" --width 5000 ${INPUT} ${OUTPUT_DIR}/x.png)
 expect_exit_code(1 "--height 5000 (15x the height)" --height 5000 ${INPUT} ${OUTPUT_DIR}/x.png)
 
-# KNOWN BUG (reported to the owner of src/main.cpp): --width 0 and negative widths are
-# treated as "keep the current width" (main.cpp: target_width > 0 ? ... : image.cols)
-# and exit 0 instead of 1. Reported as a warning, not a failure, until main.cpp is fixed;
-# after the fix this block should become expect_exit_code(1 ...) like the ones above.
-foreach(bad_size 0 -5)
-    execute_process(COMMAND ${SEAMCARVE} --width ${bad_size} ${INPUT} ${OUTPUT_DIR}/x.png
-        RESULT_VARIABLE exit_code OUTPUT_QUIET ERROR_QUIET)
-    if(exit_code EQUAL 1)
-        message(STATUS "--width ${bad_size} is rejected (known bug fixed)")
-    else()
-        message(WARNING "KNOWN BUG: --width ${bad_size} exited ${exit_code}, expected 1")
-    endif()
-endforeach()
-
-# ctest marks this test as "skipped" when the line below reports a non-zero count
-# (see SKIP_REGULAR_EXPRESSION in CMakeLists.txt). With every milestone merged it is 0.
-message(STATUS "SKIPPED_STEPS=${skipped_steps}")
+# Sizes below 1 pixel are rejected, as is a number followed by other characters.
+expect_exit_code(1 "--width 0" --width 0 ${INPUT} ${OUTPUT_DIR}/x.png)
+expect_exit_code(1 "--width -5" --width -5 ${INPUT} ${OUTPUT_DIR}/x.png)
+expect_exit_code(1 "--height 0" --height 0 ${INPUT} ${OUTPUT_DIR}/x.png)
+expect_exit_code(1 "--width 10abc" --width 10abc ${INPUT} ${OUTPUT_DIR}/x.png)

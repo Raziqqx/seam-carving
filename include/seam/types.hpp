@@ -45,17 +45,6 @@ enum class EnergyMode {
     Forward               // full forward energy of Rubinstein et al. 2008 (DP only)
 };
 
-// Thrown by a function whose real implementation belongs to a milestone that has not been
-// merged yet. The project was split into six milestones; until all of them are merged,
-// some functions are placeholders that throw this. Programs report it as "not implemented
-// yet", and tests that need such a function are skipped instead of failing.
-class NotImplementedYet : public std::logic_error {
-public:
-    // `what_is_missing` names the feature and the milestone that brings it, for example
-    // "greedy seam finder (milestone 2, Wong Shi Yu Regine)".
-    explicit NotImplementedYet(const std::string& what_is_missing);
-};
-
 // Sum of the energies of the pixels on a vertical seam.
 // Time O(rows), extra space O(1).
 long long seam_cost(const EnergyMap& energy, const Seam& seam);

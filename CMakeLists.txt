@@ -54,7 +54,13 @@ if(SEAM_USE_OPENMP)
         target_link_libraries(seam PUBLIC OpenMP::OpenMP_CXX)
     else()
         message(STATUS "OpenMP not found: the parallel variants will run on one thread")
+        # Without OpenMP the compiler ignores "#pragma omp" lines and warns about them;
+        # that warning is expected here, so it must not fail a -Werror build.
+        target_compile_options(seam PRIVATE -Wno-unknown-pragmas)
     endif()
+else()
+    # OpenMP switched off on purpose (-DSEAM_USE_OPENMP=OFF): same reason as above.
+    target_compile_options(seam PRIVATE -Wno-unknown-pragmas)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -110,7 +116,7 @@ if(SEAM_BUILD_TESTS)
 
     include(Catch)
     # A Catch2 test that calls SKIP() exits with code 4; tell ctest that this means
-    # "skipped" (a feature of a milestone that is not merged yet), not "failed".
+    # "skipped", not "failed" (used by the video test when OpenCV has no MP4 encoder).
     catch_discover_tests(seam_tests PROPERTIES SKIP_RETURN_CODE 4)
 
     # End-to-end test of the command-line tool on a real image.
@@ -121,9 +127,6 @@ if(SEAM_BUILD_TESTS)
             -DSMALL_INPUT=${CMAKE_SOURCE_DIR}/data/inputs/tower_small.png
             -DOUTPUT_DIR=${CMAKE_BINARY_DIR}/cli_test
             -P ${CMAKE_SOURCE_DIR}/tests/cli_end_to_end.cmake)
-    # The script prints SKIPPED_STEPS=<n>; n > 0 means a feature it needs is not merged yet.
-    set_tests_properties(cli_end_to_end PROPERTIES
-        SKIP_REGULAR_EXPRESSION "SKIPPED_STEPS=[1-9]")
 endif()
 
 # ---------------------------------------------------------------------------

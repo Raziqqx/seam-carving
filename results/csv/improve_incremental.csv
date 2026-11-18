@@ -1,7 +1,7 @@
 repetition,variant,rows,cols,seams,energy_ms,total_ms
-1,full_recompute,678,1000,200,691.546,1113.45
-1,incremental,678,1000,200,96.8123,502.566
-2,full_recompute,678,1000,200,670.745,1081.43
-2,incremental,678,1000,200,91.4021,496.5
-3,full_recompute,678,1000,200,760.004,1235.24
-3,incremental,678,1000,200,84.1393,483.616
+1,full_recompute,678,1000,200,660.719,1063.96
+1,incremental,678,1000,200,81.6185,465.757
+2,full_recompute,678,1000,200,648.635,1044.6
+2,incremental,678,1000,200,83.554,477.427
+3,full_recompute,678,1000,200,656.671,1073.91
+3,incremental,678,1000,200,89.5886,510.785
