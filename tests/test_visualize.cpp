@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/videoio.hpp>
 #include <string>
 #include <vector>
 
@@ -180,10 +181,18 @@ TEST_CASE("visualize: write_video writes 3 small frames to an MP4 file", "[visua
         std::filesystem::temp_directory_path() / "seam_test_write_video.mp4";
     std::filesystem::remove(path);
 
-    if (!seam::write_video(path.string(), frames, 10.0)) {
-        // Some OpenCV builds have no MP4 writer (no video backend): not our bug.
-        SKIP("this OpenCV build cannot write MP4 files");
+    // Some OpenCV builds have no MP4 writer (no video backend): that is not our bug, so
+    // ask OpenCV directly first and skip only in that case.
+    {
+        cv::VideoWriter probe(path.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 10.0,
+                              cv::Size(16, 16));
+        if (!probe.isOpened()) {
+            SKIP("this OpenCV build cannot write MP4 files");
+        }
     }
+    std::filesystem::remove(path);
+    // OpenCV can write MP4 here, so our function must succeed.
+    REQUIRE(seam::write_video(path.string(), frames, 10.0));
     CHECK(std::filesystem::exists(path));
     CHECK(std::filesystem::file_size(path) > 0);
     std::filesystem::remove(path);

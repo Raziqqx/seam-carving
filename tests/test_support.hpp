@@ -7,14 +7,6 @@
 
 namespace test_support {
 
-// The project is merged milestone by milestone. Until a milestone is merged, its functions
-// are placeholders that throw seam::NotImplementedYet. A test that needs such a function
-// calls the matching require_...() first: it tries the function once and, if it is still a
-// placeholder, SKIPS the test (Catch2 reports it as skipped, not failed).
-void require_greedy();            // milestone 2: greedy seam finder
-void require_graphcut();          // milestone 3: max-flow and graph-cut seam finder
-void require_all_seam_finders();  // greedy and graph cut (DP is always there)
-
 // Random energy grid with values in [0, max_value]. The same seed gives the same grid,
 // so a failing test can be reproduced.
 seam::EnergyMap random_energy(int rows, int cols, int max_value, unsigned seed);

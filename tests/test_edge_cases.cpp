@@ -80,7 +80,6 @@ void check_bgra_carve(const cv::Mat& bgra, Algorithm algorithm, int cols, int ro
 }  // namespace
 
 TEST_CASE("edge: 1x1 image has exactly one seam", "[edge]") {
-    test_support::require_all_seam_finders();
     const EnergyMap energy = test_support::make_energy({{42}});
     for (Algorithm algorithm : kAllAlgorithms) {
         CHECK(find_with(algorithm, energy) == Seam{0});
@@ -89,7 +88,6 @@ TEST_CASE("edge: 1x1 image has exactly one seam", "[edge]") {
 }
 
 TEST_CASE("edge: one-pixel-wide image (n = 1) has only the straight seam", "[edge]") {
-    test_support::require_all_seam_finders();
     const EnergyMap energy = test_support::make_energy({{3}, {1}, {4}, {1}, {5}});
     for (Algorithm algorithm : kAllAlgorithms) {
         const Seam seam = find_with(algorithm, energy);
@@ -99,7 +97,6 @@ TEST_CASE("edge: one-pixel-wide image (n = 1) has only the straight seam", "[edg
 }
 
 TEST_CASE("edge: two-pixel-wide image (n = 2)", "[edge]") {
-    test_support::require_all_seam_finders();
     const EnergyMap energy = test_support::make_energy({{5, 1}, {1, 5}, {5, 1}, {1, 5}});
     // The zig-zag through all the 1s is a valid seam with cost 4.
     for (Algorithm algorithm : kAllAlgorithms) {
@@ -112,8 +109,6 @@ TEST_CASE("edge: two-pixel-wide image (n = 2)", "[edge]") {
 
 // 2 x 2 is the smallest image where the seam has a real choice in every row. There are
 // exactly 4 seams, so the brute force checks all of them.
-// DP is milestone 1 (already on main), so its checks come BEFORE the skip: they run on
-// every branch, and the other algorithms are added once their milestones are merged.
 TEST_CASE("edge: 2x2 image (smallest image with a choice in every row)", "[edge]") {
     const EnergyMap energy = test_support::make_energy({{3, 1}, {2, 5}});
     // Seam costs: {0,0} = 5, {0,1} = 8, {1,0} = 3, {1,1} = 6, so {1,0} is the unique best.
@@ -128,7 +123,6 @@ TEST_CASE("edge: 2x2 image (smallest image with a choice in every row)", "[edge]
     CHECK(dp_result.image.size() == cv::Size(1, 1));
     CHECK(dp_result.seams.size() == 2);
 
-    test_support::require_all_seam_finders();
     for (Algorithm algorithm : kAllAlgorithms) {
         // Greedy also finds it here: the cheapest top pixel (col 1) leads straight to the
         // cheapest pixel below it (col 0).
@@ -165,7 +159,6 @@ TEST_CASE("edge: every horizontal seam must cross an expensive column", "[edge]"
     CHECK(dp[2] == 5);  // the horizontal seam crosses column 2 in row 5, the gap
     CHECK(seam::seam_cost(transposed, dp) == 100);
 
-    test_support::require_all_seam_finders();
     const Seam graphcut = seam::find_vertical_seam_graphcut(transposed);
     REQUIRE(seam::is_valid_seam(graphcut, transposed.rows, transposed.cols));
     CHECK(graphcut[2] == 5);
@@ -188,7 +181,6 @@ TEST_CASE("edge: 4-channel (BGRA) image keeps 4 channels and the right size", "[
     check_bgra_carve(bgra, Algorithm::DynamicProgramming, 7, 6);   // shrink both ways
     check_bgra_carve(bgra, Algorithm::DynamicProgramming, 13, 6);  // wider and shorter
 
-    test_support::require_all_seam_finders();
     for (Algorithm algorithm : kAllAlgorithms) {
         check_bgra_carve(bgra, algorithm, 7, 6);
         check_bgra_carve(bgra, algorithm, 13, 6);
@@ -196,7 +188,6 @@ TEST_CASE("edge: 4-channel (BGRA) image keeps 4 channels and the right size", "[
 }
 
 TEST_CASE("edge: one-row image picks the single cheapest pixel", "[edge]") {
-    test_support::require_all_seam_finders();
     const EnergyMap energy = test_support::make_energy({{9, 4, 7, 2, 8}});
     for (Algorithm algorithm : kAllAlgorithms) {
         CHECK(find_with(algorithm, energy) == Seam{3});
@@ -204,7 +195,6 @@ TEST_CASE("edge: one-row image picks the single cheapest pixel", "[edge]") {
 }
 
 TEST_CASE("edge: constant image (all ties) still gives valid seams", "[edge]") {
-    test_support::require_all_seam_finders();
     const EnergyMap energy(6, 7, 5);
     for (Algorithm algorithm : kAllAlgorithms) {
         const Seam seam = find_with(algorithm, energy);
@@ -214,7 +204,6 @@ TEST_CASE("edge: constant image (all ties) still gives valid seams", "[edge]") {
 }
 
 TEST_CASE("edge: constant colour image can be carved by every algorithm", "[edge]") {
-    test_support::require_all_seam_finders();
     const cv::Mat image(6, 8, CV_8UC3, cv::Scalar(10, 20, 30));
     for (Algorithm algorithm : kAllAlgorithms) {
         CarveOptions options;
@@ -230,7 +219,6 @@ TEST_CASE("edge: constant colour image can be carved by every algorithm", "[edge
 }
 
 TEST_CASE("edge: grayscale and colour inputs both work and agree", "[edge]") {
-    test_support::require_all_seam_finders();
     const cv::Mat_<uchar> gray = test_support::random_gray(9, 11, 77);
     cv::Mat colour;
     cv::cvtColor(gray, colour, cv::COLOR_GRAY2BGR);
@@ -255,7 +243,6 @@ TEST_CASE("edge: grayscale and colour inputs both work and agree", "[edge]") {
 }
 
 TEST_CASE("edge: carving down to a single column and a single row", "[edge]") {
-    test_support::require_all_seam_finders();
     const cv::Mat image = test_support::random_colour(7, 9, 55);
     for (Algorithm algorithm : kAllAlgorithms) {
         CarveOptions options;
@@ -274,7 +261,6 @@ TEST_CASE("edge: carving down to a single column and a single row", "[edge]") {
 }
 
 TEST_CASE("edge: very non-square images (tall and wide)", "[edge]") {
-    test_support::require_all_seam_finders();
     for (Algorithm algorithm : kAllAlgorithms) {
         CarveOptions options;
         options.algorithm = algorithm;
@@ -290,7 +276,6 @@ TEST_CASE("edge: very non-square images (tall and wide)", "[edge]") {
 }
 
 TEST_CASE("edge: every energy mode works with every algorithm that supports it", "[edge]") {
-    test_support::require_all_seam_finders();
     const cv::Mat image = test_support::random_colour(8, 9, 123);
     for (Algorithm algorithm : kAllAlgorithms) {
         for (seam::EnergyMode mode :
@@ -305,7 +290,6 @@ TEST_CASE("edge: every energy mode works with every algorithm that supports it",
 }
 
 TEST_CASE("edge: large energy values do not overflow the seam cost", "[edge]") {
-    test_support::require_greedy();
     // 1000 rows of the largest Sobel value: cumulative cost 2,040,000 fits easily in int.
     const EnergyMap energy(1000, 3, 2040);
     const Seam seam = seam::find_vertical_seam_dp(energy);
@@ -322,7 +306,6 @@ TEST_CASE("edge: is_valid_seam accepts and rejects the right things", "[edge]") 
 }
 
 TEST_CASE("edge: horizontal == transpose(vertical(transpose)) for every algorithm", "[edge]") {
-    test_support::require_all_seam_finders();
     const cv::Mat image = test_support::random_colour(9, 12, 11);
     for (Algorithm algorithm : kAllAlgorithms) {
         CarveOptions options;
@@ -355,7 +338,6 @@ TEST_CASE("edge: horizontal == transpose(vertical(transpose)) for every algorith
 
 TEST_CASE("edge: output shape is exactly (rows, cols - k) or (rows - k, cols) for every algorithm",
           "[edge]") {
-    test_support::require_all_seam_finders();
     const cv::Mat image = test_support::random_colour(10, 14, 5);
     for (Algorithm algorithm : kAllAlgorithms) {
         CarveOptions options;

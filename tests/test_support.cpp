@@ -4,31 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <limits>
 
-#include "seam/graphcut.hpp"
-#include "seam/greedy.hpp"
-
 namespace test_support {
-
-void require_greedy() {
-    try {
-        seam::find_vertical_seam_greedy(make_energy({{1}}));
-    } catch (const seam::NotImplementedYet& missing) {
-        SKIP(missing.what());
-    }
-}
-
-void require_graphcut() {
-    try {
-        seam::find_vertical_seam_graphcut(make_energy({{1}}));
-    } catch (const seam::NotImplementedYet& missing) {
-        SKIP(missing.what());
-    }
-}
-
-void require_all_seam_finders() {
-    require_greedy();
-    require_graphcut();
-}
 
 seam::EnergyMap random_energy(int rows, int cols, int max_value, unsigned seed) {
     std::mt19937 generator(seed);

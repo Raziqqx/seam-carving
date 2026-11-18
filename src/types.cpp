@@ -4,9 +4,6 @@
 
 namespace seam {
 
-NotImplementedYet::NotImplementedYet(const std::string& what_is_missing)
-    : std::logic_error("not implemented yet: " + what_is_missing) {}
-
 long long seam_cost(const EnergyMap& energy, const Seam& seam) {
     long long total = 0;
     for (int row = 0; row < energy.rows; ++row) {
