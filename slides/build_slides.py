@@ -15,6 +15,7 @@ from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
 from notes_text import speaker_notes
@@ -41,7 +42,7 @@ class Deck:
 
     # -- low-level helpers --------------------------------------------------------------
     def _text(self, slide, left, top, width, height, lines, size=18, colour=INK, bold=False,
-              font=FONT, bullet=False, spacing=6):
+              font=FONT, bullet=False, spacing=6, centred=False):
         """Adds a text box. `lines` is a string or a list of strings (one paragraph each)."""
         box = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
         frame = box.text_frame
@@ -57,6 +58,8 @@ class Deck:
             run.font.name = font
             run.font.color.rgb = colour
             paragraph.space_after = Pt(spacing)
+            if centred:
+                paragraph.alignment = PP_ALIGN.CENTER
         return box
 
     def _picture(self, slide, name, left, top, max_width, max_height):
@@ -90,7 +93,7 @@ class Deck:
         return slide
 
     # -- layouts ------------------------------------------------------------------------
-    def title_slide(self, title, subtitle, team_lines, speaker, notes):
+    def title_slide(self, title, subtitle, team_lines, speaker, notes, picture):
         slide = self.presentation.slides.add_slide(self.presentation.slide_layouts[6])
         band = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, Inches(SLIDE_W), Inches(3.3))
         band.fill.solid()
@@ -99,7 +102,7 @@ class Deck:
         self._text(slide, 0.8, 0.9, 11.7, 1.2, title, size=44, bold=True, colour=WHITE)
         self._text(slide, 0.8, 2.1, 11.7, 0.8, subtitle, size=22, colour=WHITE)
         self._text(slide, 0.8, 3.6, 5.6, 3.4, team_lines, size=16, spacing=3)
-        self._picture(slide, "fig_seams_tower.png", 6.3, 3.7, 6.7, 3.2)
+        self._picture(slide, picture, 6.3, 3.6, 6.7, 3.4)
         slide.notes_slide.notes_text_frame.text = notes
         self.notes.append((1, title, speaker, notes))
 
@@ -126,6 +129,27 @@ class Deck:
         slide = self._new_slide(title, speaker, section, notes)
         self._picture(slide, picture, 0.6, 1.35, 12.2, 4.75)
         self._text(slide, 0.6, 6.2, 12.2, 0.7, caption, size=17, colour=INK)
+        return slide
+
+    def strip_and_pair_slide(self, title, speaker, section, strip, caption, pair, notes):
+        """A very wide picture strip at the top, its caption, then two labelled pictures.
+
+        `pair` is [(path, label), (path, label)]; the paths may be anywhere in the repository.
+        """
+        slide = self._new_slide(title, speaker, section, notes)
+        path = self.figures_dir / strip
+        with Image.open(path) as image:
+            strip_height = 12.2 * image.height / image.width
+        self._picture(slide, strip, 0.6, 1.3, 12.2, strip_height)
+        top = 1.3 + strip_height + 0.1
+        self._text(slide, 0.6, top, 12.2, 0.75, caption, size=16, colour=INK)
+        top += 0.85
+        height = 6.55 - top
+        for index, (picture, label) in enumerate(pair):
+            left = 0.6 + index * 6.2
+            self._picture(slide, picture, left, top, 6.0, height)
+            self._text(slide, left, top + height, 6.0, 0.35, label, size=13, colour=MUTED,
+                       centred=True)
         return slide
 
     def bullets_and_code(self, title, speaker, section, bullets, code, notes, text_width=6.0,
@@ -204,7 +228,10 @@ def build(repo_dir):
          "Yasmin Tazi (2402451)",
          "Kimberly Charlotte Madlangbayan Ambrosio (2401836)"],
         who,
-        notes[1])
+        notes[1],
+        # A different picture from slide 2: all vertical (red) and horizontal (green) seams
+        # of one resize, drawn on the original.
+        repo_dir / "results" / "tower" / "dp_both_seams.png")
     deck.bullets_above_picture(
         "The pipeline: energy, find a seam, remove, repeat", who, section,
         ["Energy = Sobel gradient |Gx| + |Gy| on the grayscale image: high on edges, about 0 "
@@ -237,7 +264,9 @@ def build(repo_dir):
          "No table: O(n + m) time, O(m) space",
          "Always a valid seam, but not optimal: a cheap start can lead into an expensive "
          "region",
-         "Our 3 x 3 counter-example: greedy pays 19, the optimum is 4"],
+         "Our 3 x 3 counter-example: greedy pays 19, the optimum is 4",
+         "No constant-factor guarantee: with top row 0, 1, 9 and other rows 9, 9, 0, greedy "
+         "pays 9(m-1) and DP pays 1"],
         "energy        greedy = 19     DP = 4\n"
         "1  2  9       [1] 2  9        1 [2] 9\n"
         "9  9  1       [9] 9  1        9  9 [1]\n"
@@ -248,7 +277,7 @@ def build(repo_dir):
         "    c = seam[i-1]\n"
         "    seam[i] = cheapest of\n"
         "        e[i][c-1], e[i][c], e[i][c+1]",
-        notes[4], text_width=6.1, code_size=15)
+        notes[4], text_width=6.1, code_size=18)
     deck.bullets_and_picture(
         "Greedy vs DP: much higher seam cost, visible damage", who, section,
         [f"Total energy removed is {f['cost_ratio_min']}x to {f['cost_ratio_max']}x the DP "
@@ -283,7 +312,8 @@ def build(repo_dir):
          "Tests: seam cost = DP cost = max-flow value on 768 random grids; max flow = "
          "Boost's Edmonds-Karp",
          f"Speed: {f['gc_250_seconds']} s for one seam on {f['size_graphcut_250']}, about "
-         f"{f['gc_500_seconds']} s on a full image; DP takes under a millisecond",
+         f"{f['gc_500_seconds']} s on the {f['size_graphcut_500']} tower; DP takes under a "
+         "millisecond",
          "Worst case O(V E^2) = O((mn)^3)"],
         "fig_runtime_vs_size.png",
         notes[7], text_width=5.6, bullet_size=17)
@@ -306,43 +336,44 @@ def build(repo_dir):
         notes[8],
         footer_lines=["The graph-cut vs DP cross-check is what exposed the last-column problem"],
         font_size=15)
-    deck.bullets_and_code(
+    deck.table_slide(
         "CI/CD: every push is linted, built and tested", who, section,
-        ["GitHub Actions on every push and pull request",
-         "lint: clang-format must report no differences",
-         "build-and-test: -Wall -Wextra -Werror, then the full Catch2 suite and a "
-         "command-line end-to-end test",
-         "app: the interactive app builds and passes a headless self-test",
-         "Each milestone is merged to main through a pull request that must pass CI",
-         "CD: pushing a version tag publishes a release (program, report, slides)"],
-        "jobs:\n"
-        "  lint:\n"
-        "    clang-format --dry-run --Werror\n"
-        "  build-and-test:\n"
-        "    apt-get install libopencv-dev\n"
-        "        catch2 libboost-graph-dev\n"
-        "    cmake -DSEAM_WERROR=ON\n"
-        "    cmake --build build\n"
-        "    ctest --output-on-failure\n"
-        "  app:\n"
-        "    cmake -DSEAM_BUILD_APP=ON\n"
-        "    seamcarve_app --selftest",
-        notes[9], text_width=6.4, code_size=15)
+        ["GitHub Actions job", "What it checks", "Runs on"],
+        [["lint", "clang-format must report no differences", "every push and pull request"],
+         ["build-and-test (OpenMP ON)", "-Wall -Wextra -Werror; full Catch2 suite and the "
+          "command-line end-to-end test", "every push and pull request"],
+         ["build-and-test (OpenMP OFF)", "the same, without OpenMP: it stays an optional "
+          "speed-up", "every push and pull request"],
+         ["app", "the interactive app builds and passes a headless self-test",
+          "every push and pull request"],
+         ["release (CD)", "builds and tests again, then publishes the seamcarve binary, the "
+          "report and the slides", "pushing a version tag (v1.0.0)"]],
+        [3.3, 5.9, 3.0],
+        notes[9],
+        footer_lines=["Milestones 2 to 6 were merged into main through pull requests whose CI "
+                      "checks passed (milestone 1, the scaffold, was pushed directly)",
+                      "Every job has a 20-minute timeout; a failing test run keeps its full "
+                      "log as an artifact"],
+        font_size=15)
 
     # ------------------------------------------------------------------ 5. Yasmin
     who, section = "Yasmin Tazi", "5. Visualisation and live demo"
-    deck.picture_slide(
+    deck.strip_and_pair_slide(
         "Step-by-step visualisation: every seam, drawn and animated", who, section,
         "fig_steps.png",
-        "Red = seam about to be removed. An index map remembers where each pixel was in the "
+        "Red = vertical seam, green = horizontal seam, each drawn just before it is removed. "
+        "An index map remembers where each pixel was in the "
         "original, so all seams can also be drawn on the original image. Output: MP4 or PNG frames.",
+        [(repo_dir / "results" / "tower" / "dp_seams.png",
+          "All 150 vertical seams, drawn on the original with the index map"),
+         (repo_dir / "results" / "tower" / "dp.png", "The result: 350 x 339, tower unchanged")],
         notes[10])
     deck.bullets_above_picture(
         "Live demo: interactive resizing app", who, section,
         ["Dear ImGui + GLFW app: load an image, drag width and height sliders",
          "Choose DP, greedy or graph cut, and the energy function",
          "Views: result, all seams, energy map, step-by-step replay",
-         "Shrinks and enlarges (seam insertion)",
+         "Shrinks and enlarges (seam insertion); saves the result and the seams picture",
          "Demo: 1) tower, DP, width to 70 %   2) all seams   3) greedy for contrast   "
          "4) step-by-step slider   5) enlarge   6) graph cut on a small image: same "
          "first-seam cost as DP, totals within 1 %"],
@@ -352,8 +383,8 @@ def build(repo_dir):
     # ------------------------------------------------------------------ 6. Kimberly
     who, section = "Kimberly Charlotte M. Ambrosio", "6. Analysis and conclusions"
     deck.bullets_and_code(
-        "Item 2: exponentially many seams; divide and conquer does not help Sobel", who, section,
-        ["2a-i: n choices in row 0, then at least 2 and at most 3 per row, so "
+        "Item 2: exponentially many seams; D&C does not help Sobel", who, section,
+        ["2a-i (n ≥ 2): n choices in row 0, then at least 2 and at most 3 per row, so "
          "n*2^(m-1) <= #seams <= n*3^(m-1); brute-force counts confirm it",
          "Exactly 2^m for n = 2; growth rate 1 + 2cos(pi/(n+1)) in general",
          "2b: direct 3 x 3 Sobel is already Theta(mn), which is optimal",
@@ -405,7 +436,7 @@ def build(repo_dir):
          "correct but slow and generalises to video"],
         "fig_threads.png",
         notes[14],
-        bullet_size=17, text_height=2.85)
+        bullet_size=16, text_height=1.9)
 
     output = repo_dir / "slides" / "Team5_Seam_Carving.pptx"
     deck.save(output)
