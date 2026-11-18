@@ -181,7 +181,8 @@ def plot_runtime_vs_size(rows, repetitions, figures, generated, facts):
     axis.set_xlabel("Image size (pixels, log scale)")
     axis.set_ylabel("Time to find one seam (ms, log scale)")
     axis.set_title("Finding one seam: runtime vs image size", color=TEXT_COLOUR)
-    axis.legend(loc="lower right")
+    # Legend in the empty area right of the graph-cut line and above the DP line.
+    axis.legend(loc="upper right", bbox_to_anchor=(1.0, 0.86))
     fig.savefig(figures / "fig_runtime_vs_size.png")
     plt.close(fig)
     write_table(generated / "table_runtime_size.md",

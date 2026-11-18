@@ -41,3 +41,14 @@ blockquote { border-left: 2.5px solid #b9c7da; margin: 2mm 0 3mm 0; padding: 0.5
              color: #2c2c2c; font-size: 9.3pt; }
 math { font-size: 1.04em; }
 math[display="block"] { margin: 2mm 0; }
+/* Keep table rows whole, and headings with the text that follows them. */
+tr { break-inside: avoid; page-break-inside: avoid; }
+h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
+/* The 2 x 3 worked example: keep the heading, the sentence and the energy grid together. */
+h3#worked-example-2-x-3 + p { break-after: avoid; page-break-after: avoid; }
+/* References: tighter list so that the last entries do not spill onto a page of their own. */
+h1#references + ol { margin: 1mm 0; padding-left: 1.4em; font-size: 9pt; line-height: 1.25; }
+h1#references + ol li { margin-bottom: 0.3mm; }
+/* Long tables (15 rows or more) may break between rows instead of jumping to a new page. */
+table:has(tbody tr:nth-child(15)) { page-break-inside: auto; break-inside: auto; }
+h1#references { margin-top: 4mm; }
