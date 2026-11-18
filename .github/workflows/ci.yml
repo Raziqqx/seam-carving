@@ -1,9 +1,13 @@
-# Continuous integration (bonus 7c), first version: build and test.
+# Continuous integration (bonus 7c).
 # Runs on every push and every pull request:
-#   1. build  - compile with -Wall -Wextra -Werror (any warning fails the build)
-#   2. test   - run the test suite with ctest
-# Milestone 4 extends this workflow with a formatting check, the interactive-app job and
-# build artifacts, and adds the release workflow.
+#   1. lint   - the code must match .clang-format exactly
+#   2. build  - compile with -Wall -Wextra -Werror (any warning fails the build)
+#   3. test   - the full Catch2 suite plus the command-line end-to-end test, twice:
+#               with OpenMP and without it, so the code never depends on OpenMP
+#   4. app    - the interactive app must compile and pass its headless self-test
+# On success the command-line tool and the report PDF are stored as build artifacts.
+# On a test failure the full ctest log is stored instead, so it can be read afterwards.
+# Delivery (publishing a release when a version tag is pushed) is in release.yml.
 name: CI
 
 on:
@@ -11,8 +15,25 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: Check formatting
+        run: clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp')
+
   build-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      # Run both entries to the end, so one failing does not hide the result of the other.
+      fail-fast: false
+      matrix:
+        # OFF proves that OpenMP is only an optional speed-up (item 5d), not a requirement.
+        # Quoted: unquoted ON/OFF can be read as the booleans true/false by YAML.
+        openmp: ['ON', 'OFF']
+    name: build-and-test (OpenMP ${{ matrix.openmp }})
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -20,8 +41,42 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake g++ libopencv-dev catch2 libboost-graph-dev
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSEAM_WERROR=ON
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSEAM_WERROR=ON
+          -DSEAM_USE_OPENMP=${{ matrix.openmp }}
       - name: Build
         run: cmake --build build -j 4
       - name: Test
         run: ctest --test-dir build --output-on-failure -j 4
+      - name: Upload the test log when a test fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log-openmp-${{ matrix.openmp }}
+          path: build/Testing/Temporary/LastTest.log
+      - name: Upload command-line tool and report
+        # Only one matrix entry uploads, otherwise the two artifacts would have the same name.
+        if: github.ref == 'refs/heads/main' && matrix.openmp == 'ON'
+        uses: actions/upload-artifact@v4
+        with:
+          name: seamcarve-linux
+          path: |
+            build/seamcarve
+            report/report.pdf
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libopencv-dev libglfw3-dev libgl-dev
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSEAM_WERROR=ON
+          -DSEAM_BUILD_APP=ON -DSEAM_BUILD_TESTS=OFF -DSEAM_BUILD_BENCH=OFF
+      - name: Build the app
+        run: cmake --build build -j 4 --target seamcarve_app
+      - name: Headless self-test
+        run: ./build/seamcarve_app --selftest data/inputs/tower.png
