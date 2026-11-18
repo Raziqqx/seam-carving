@@ -18,7 +18,7 @@ This report covers everything the assignment asks for:
 | 5 analysis and discussion | [6](#analysis-and-discussion) | `src/improvements.cpp`, `benchmarks/` |
 | 7a step-by-step visualisation | [4.4](#step-by-step-visualisation-bonus-7a) | `src/visualize.cpp` |
 | 7b interactive app | [4.5](#interactive-app-bonus-7b) | `src/app.cpp` |
-| 7c CI/CD | [4.6](#continuous-integration-bonus-7c) | `.github/workflows/ci.yml` |
+| 7c CI/CD | [4.6](#continuous-integration-and-delivery-bonus-7c) | `.github/workflows/ci.yml` |
 
 **What we built.** A C++17 library with three seam finders (dynamic programming, greedy and
 a minimum cut solved by our own Edmonds-Karp max-flow), all of which work for vertical and
