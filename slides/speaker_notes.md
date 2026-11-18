@@ -30,7 +30,7 @@ Six sections, 2 minutes each, 12 minutes in total. The time stamps at the start 
 
 **Speaker:** Wong Shi Yu Regine
 
-[Regine, 2:55-3:55] On three images, removing 30 percent of the width, greedy removed 1.11 to 3.00 times as much energy as DP. In the bottom row, DP is on the left and greedy in the middle: DP removes sky and grass and keeps the tower's width; greedy's seams run into the tower and distort it. Greedy's search is hundreds of times faster, but every method still computes an energy map and copies the image per seam, so the whole loop is only about 2.0 times faster. So greedy is not comparable to DP in visual quality, and it saves little time. Next, Clarissa.
+[Regine, 2:55-3:55] On three images, removing 30 percent of the width, greedy removed 1.11 to 3.00 times as much energy as DP. In the bottom row, DP is on the left and greedy in the middle: DP removes sky and grass and keeps the tower's width; greedy's seams run into the tower and distort it. Greedy's search is hundreds of times faster, but every method still computes an energy map and copies the image per seam, so the whole loop is only about 2.1 times faster. So greedy is not comparable to DP in visual quality, and it saves little time. Next, Clarissa.
 
 ## Slide 6: Graph cut: a seam is a minimum s-t cut
 
@@ -42,13 +42,13 @@ Six sections, 2 minutes each, 12 minutes in total. The time stamps at the start 
 
 **Speaker:** Tan Ying Clarissa
 
-[Clarissa, 4:55-5:55] Our tests compare graph cut with DP, and at first they disagreed. The brief joins the last column to the sink with infinite capacity, so a last-column pixel can never be removed. Our fix gives that edge the pixel's energy. Then, on 768 random grids, the seam cost equals the DP cost and the max-flow value, and our max-flow matches Boost's. So graph cut is correct, but slow: one seam on a 250 x 169 image takes 1.82 seconds and 930 augmenting paths, each a BFS over the whole graph. DP needs under a millisecond. The worst case is O of V E squared. Over to Isaiah.
+[Clarissa, 4:55-5:55] Our tests compare graph cut with DP, and at first they disagreed. The brief joins the last column to the sink with infinite capacity, so a last-column pixel can never be removed. Our fix gives that edge the pixel's energy. Then, on 768 random grids, the seam cost equals the DP cost and the max-flow value, and our max-flow matches Boost's. So graph cut is correct, but slow: one seam on a 250 x 169 image takes 1.75 seconds and 930 augmenting paths, each a BFS over the whole graph. DP needs under a millisecond. The worst case is O of V E squared. Over to Isaiah.
 
-## Slide 8: Testing: 97 test cases, 25,111 checks, all passing
+## Slide 8: Testing: 110 test cases, 26,115 checks, all passing
 
 **Speaker:** Isaiah Low Jung
 
-[Isaiah, 6:00-7:05] Our rule: test every algorithm against an independent way of getting the same answer. For DP that is brute force: on grids up to 6 by 6 we list every seam and take the true minimum. Graph cut is checked against DP, and its max flow against Boost, which is used only in that test. Greedy must be valid and never cheaper than DP. We check exact output shapes, that horizontal equals the transpose trick, and edge cases: one pixel, one column, constant images, gray and colour, carving down to one pixel, and enlarging. Optimised variants must equal the plain ones. In total 97 test cases and 25,111 checks, all passing. The cross-check is what caught the last-column issue.
+[Isaiah, 6:00-7:05] Our rule: test every algorithm against an independent way of getting the same answer. For DP that is brute force: on grids up to 6 by 6 we list every seam and take the true minimum. Graph cut is checked against DP, and its max flow against Boost, which is used only in that test. Greedy must be valid and never cheaper than DP. We check exact output shapes, that horizontal equals the transpose trick, and edge cases: one pixel, one column, constant images, gray and colour, carving down to one pixel, and enlarging. Optimised variants must equal the plain ones. In total 110 test cases and 26,115 checks, all passing. The cross-check is what caught the last-column issue.
 
 ## Slide 9: CI/CD: every push is linted, built and tested
 
@@ -84,7 +84,7 @@ Six sections, 2 minutes each, 12 minutes in total. The time stamps at the start 
 
 **Speaker:** Kimberly Charlotte M. Ambrosio
 
-[Kimberly, 11:20-11:55] Do we need the whole DP table? No: two rolling rows of costs, plus one byte per pixel for the parent, replace 8 bytes per pixel: 8.0 times less memory. Multithreading helps the energy map, up to 6.4 times against our serial loop, but hardly the DP table, because each row depends on the row above. Updating only the energies next to the seam makes that step 7.6 times faster. To conclude: DP is optimal, fast and simple; greedy is fast but poor; graph cut is correct but slow.
+[Kimberly, 11:20-11:55] Do we need the whole DP table? No: two rolling rows of costs, plus one byte per pixel for the parent, replace 8 bytes per pixel: 8.0 times less memory. Multithreading helps the energy map, up to 7.1 times against our serial loop, but hardly the DP table, because each row depends on the row above. Updating only the energies next to the seam makes that step 7.9 times faster. To conclude: DP is optimal, fast and simple; greedy is fast but poor; graph cut is correct but slow.
 
 ## Word counts
 
