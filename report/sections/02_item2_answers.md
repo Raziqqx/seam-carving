@@ -100,8 +100,8 @@ bottom row and follow the parents up to row 0.
 1. *Optimal substructure* (shown above): an optimal solution is built from optimal
    solutions of smaller problems.
 2. *Overlapping subproblems*: a naive recursion on the recurrence calls itself up to three
-   times per row, so its running time is exponential: it visits every seam, which by item
-   2a-i means between $n \cdot 2^{m-1}$ and $n \cdot 3^{m-1}$ calls for $n \ge 2$
+   times per row, so its running time is exponential: it visits every seam, so by item
+   2a-i it makes at least $n \cdot 2^{m-1}$ calls for $n \ge 2$
    (exponential in $m$). But there are only $mn$ different subproblems;
    $M[i-1][j]$ alone is needed by three cells of row $i$. Solving each subproblem once and
    storing it in a table gives $\Theta(mn)$ time.

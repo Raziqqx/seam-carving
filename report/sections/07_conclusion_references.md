@@ -17,7 +17,7 @@ The theory and the measurements agree: the seam count is exponential (so brute f
 impossible), DP runs in $\Theta(mn)$, and the benchmarks show a constant cost per pixel
 (@@dp_ns_per_pixel_best_range@@ ns) and a log-log slope of about 1 (@@exp_dp@@). For item 5d, the DP needs only two rows of costs plus one byte per pixel for
 backtracking; multithreading helps the energy map but not the DP table; and updating the
-energy only next to the removed seam is the most effective single optimisation.
+energy only next to the removed seam speeds up the whole carving loop by @@inc_total_speedup@@x.
 
 **Limitations.** Images with straight structure across the whole width (our bridge) are
 distorted by any seam-carving method; removing width before height is not the optimal

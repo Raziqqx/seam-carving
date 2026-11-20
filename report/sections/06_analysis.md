@@ -57,7 +57,7 @@ The measurements agree with this picture. The *number* of augmenting paths, whic
 depend on timing noise, grows like $N^{@@exp_augmentations@@}$ over the tested sizes (for
 example @@gc_250_augmentations@@ paths for @@size_graphcut_250@@ and
 @@gc_500_augmentations@@ for @@size_graphcut_500@@), below the $N^{0.5}$ that the bound
-allows. Each augmentation is one BFS over the whole graph, $\Theta(N)$, so we expect a time
+allows. Each augmentation costs $\Theta(N)$ (one BFS plus resetting its per-node arrays), so we expect a time
 of roughly $N^{@@exp_graphcut_expected@@}$. The measured time exponent is
 @@exp_graphcut@@ (with the full-size image included in the fit). It is somewhat higher
 because the cost of one augmentation, divided by the number of pixels, also rises with the
@@ -78,7 +78,7 @@ stored with its reverse edge and an adjacency-list entry. Measured on a
 @@bytes_per_pixel_graph_cut_network@@ bytes per pixel for the network, against
 @@bytes_per_pixel_dp_full_tables@@ bytes per pixel for the two DP tables.
 
-### k seams
+### Removing $k$ seams {#k-seams}
 
 Removing $k$ vertical seams means running the loop on images of width
 $n, n-1, \dots, n-k+1$:
@@ -194,7 +194,7 @@ is `build_cumulative_energy`.
 
 <!-- include: generated/table_threads.md -->
 
-![Figure 19. Speed-up over the plain serial loop. The dashed line marks 1x (no gain).](figures/fig_threads.png){width=100%}
+![Figure 19. Speed-up over the plain serial loop. The dashed line marks 1x (no gain).](figures/fig_threads.png){width=65%}
 
 On the large @@threads_large_size@@ image the energy map reaches a speed-up of
 @@threads_energy_large_best@@x with @@threads_energy_large_best_n@@ threads (the best
@@ -271,9 +271,11 @@ triangle of cells that the changed energies can influence.
 ### Forward energy
 
 Forward energy ([3.1](#energy-map-item-1a), [5.5](#forward-energy)) improves *quality* at
-the same asymptotic cost: the DP is still $\Theta(mn)$, with a slightly larger constant
-because the step cost is evaluated for each of the three parents. It adds the least new
-edge energy on all three test images (Table 5) and visibly keeps lines straighter.
+the same asymptotic cost: the DP is still $\Theta(mn)$, with a larger constant because the
+step cost is evaluated for each of the three parents (in our cost experiment the whole loop
+was 3 to 4 times slower than with gradient energy; `results/csv/seam_cost.csv`). It leaves a
+lower mean energy than gradient-energy DP on all three test images (Table 5) and visibly
+keeps lines straighter.
 
 ### Other improvements we considered
 

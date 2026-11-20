@@ -3,7 +3,7 @@
 All three seam finders share one pipeline (Figure 2). Only the middle step differs.
 
 ```
-image --> grayscale --> energy map --> find one seam --> remove seam --> smaller image
+image --> greyscale --> energy map --> find one seam --> remove seam --> smaller image
               ^                        (DP | greedy |                        |
               |                         graph cut)                           |
               +---------------- repeat until the target size ----------------+
@@ -17,7 +17,7 @@ seam as a list `seam[row] = column`. Horizontal seams reuse it through a transpo
 
 ## Energy map (item 1a)
 
-**Definition.** We convert the image to 8-bit grayscale $I$ and use the L1 Sobel gradient
+**Definition.** We convert the image to 8-bit greyscale $I$ and use the L1 Sobel gradient
 magnitude (the $e_1$ energy of Avidan and Shamir):
 
 $$ e[i][j] = |G_x(i, j)| + |G_y(i, j)|, $$
@@ -38,9 +38,9 @@ image and make border pixels look important.
 
 | Choice | Why | Alternative considered |
 |---|---|---|
-| L1 norm $\lvert G_x\rvert + \lvert G_y\rvert$ | Exact integers: seam costs can be compared with `==` in tests, and max-flow capacities are exact | L2 norm $\sqrt{G_x^2 + G_y^2}$: needs floating point, and results look the same |
+| L1 norm $\lvert G_x\rvert + \lvert G_y\rvert$ | Exact integers: seam costs can be compared with `==` in tests, and max-flow capacities are exact | L2 norm $\sqrt{G_x^2 + G_y^2}$: needs floating point; usually gives very similar seams |
 | Sobel $3 \times 3$ | Smooths a little, so single noisy pixels matter less | Simple difference $\lvert I[i][j+1] - I[i][j-1]\rvert$: implemented as the `neighbour` energy, the cost the brief suggests for graph cut |
-| Grayscale | One channel, 3x less work | Per-channel gradients summed: more faithful to colour edges, 3x the cost |
+| Greyscale | One channel, 3x less work | Per-channel gradients summed: more faithful to colour edges, 3x the cost |
 | Two implementations | `compute_gradient_energy` (OpenCV `Sobel`) is the default; `compute_gradient_energy_manual` is our own double loop | A test checks they agree on every pixel, so the report can reason about code we wrote |
 
 **Forward energy (option).** The gradient energy measures what a pixel *has*. Rubinstein,
@@ -59,7 +59,8 @@ step*, not only on the pixel, so it is added inside the minimum of the DP recurr
 
 The recurrence and its justification are in [2.2](#item-2a-ii-relating-the-problem-to-subproblems).
 The implementation has two short functions (the three-way minimum is the helper
-`best_parent_col`, shared by every DP variant).
+`best_parent_col`, shared by the plain, rolling-row and row-parallel DP; the forward-energy
+DP has its own loop because its step cost depends on the parent).
 
 ```
 build_cumulative_energy(e):                  # fills M and parent, top row first

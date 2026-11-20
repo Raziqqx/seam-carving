@@ -611,8 +611,8 @@ def picture_figures(results, figures):
         (tower / "dp_enlarged.png", "Width enlarged to 120 % (seam insertion)"),
     ], figures / "fig_extras.png", columns=3)
     picture_panel([
-        (tower / "dp_enlarged_seams.png", "Pixels duplicated by vertical seam insertion (red)"),
-        (tower / "dp_mixed_seams.png", "Vertical seams removed (red), horizontal inserted (green)"),
+        (tower / "dp_enlarged_seams.png", "Width +20 %: inserted seams (red)"),
+        (tower / "dp_mixed_seams.png", "Removed (red), inserted (green)"),
         (tower / "dp_mixed.png", "Result: 80 % width, 115 % height"),
     ], figures / "fig_insertion.png", columns=3)
 

@@ -1,7 +1,6 @@
 <header id="title-block-header">
 <h1 class="title">Assignment 2: Image Compression by Seam Carving</h1>
 <p class="subtitle">Dynamic programming, greedy and graph-cut seam carving, with analysis</p>
-<p class="author">Team 5</p>
 </header>
 
 ::: {.team}
