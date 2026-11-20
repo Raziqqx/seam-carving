@@ -9,25 +9,25 @@ def speaker_notes(f):
     """
     return {
         1: "[Raziq, 0:00-0:15] We are Team 5. Seam carving resizes an image by removing paths "
-           "of unimportant pixels instead of squashing or cropping it. We implemented it three "
-           "ways: dynamic programming, greedy and graph cut. I cover the energy map and the "
-           "DP.",
-        2: "[Raziq, 0:15-0:50] Every method uses the same loop. First the energy map: the "
-           "Sobel gradient of the grayscale image, absolute Gx plus absolute Gy, so energies "
-           "are exact integers. At the border we replicate the edge pixel. A seam is one pixel "
-           "per row, with neighbours at most one column apart. The picture shows the energy "
-           "and the seams DP removed: they avoid the tower. After each removal the energy is "
-           "recomputed. For horizontal seams we transpose the image, so each algorithm is "
-           "written once.",
+           "of unimportant pixels, rather than squashing or cropping it. We implemented it three "
+           "ways: dynamic programming, greedy and graph cut. I will cover the energy map and "
+           "the DP.",
+        2: "[Raziq, 0:15-0:50] All three methods share the same loop. First, the energy map: "
+           "we take the Sobel gradient of the grayscale image and add the absolute values of "
+           "Gx and Gy. There is no square root, so every energy is an exact integer. At the "
+           "border, we replicate the edge pixel. A seam is one pixel per row, with neighbours "
+           "at most one column apart. The picture shows the energy and the seams DP "
+           "removed; they avoid the tower. After each removal, we recompute the energy. For "
+           "horizontal seams, we transpose the image, so each algorithm is written once.",
         3: "[Raziq, 0:50-1:55] There are at least 2 to the power m seams, so we cannot try "
-           "them all. M of i j is the cost of the cheapest seam from the top row to pixel i j. "
-           "Such a seam must come from one of the three pixels above, and the part above must "
-           "itself be cheapest; that is optimal substructure, and it gives the recurrence. In "
-           "the edge columns a missing parent is skipped. On the right is our 4 by 4 example: "
-           "the bottom-row minimum is 6, and following the parent arrows gives the shaded "
-           "seam. The table has m times n cells with three comparisons each: O of m n time "
-           "and space. Tests compare the DP with brute force on 540 random grids. Over to "
-           "Regine.",
+           "them all. We let M of i j be the cost of the cheapest seam from the top "
+           "row to pixel i j. That seam must pass through one of the three pixels above, and "
+           "the part above must itself be the cheapest. That is optimal substructure, and it "
+           "gives the recurrence. In the edge columns, we skip the missing parent. On the "
+           "right is our 4 by 4 example. The bottom-row minimum is 6, and following the "
+           "parent arrows gives the shaded seam. The table has m times n cells with three "
+           "comparisons each, so the DP takes O of m n time and space. Our tests compare the "
+           "DP with brute force on 540 random grids. Over to Regine.",
         4: "[Regine, 2:00-2:55] Greedy makes one local decision per row. It starts at the "
            "cheapest pixel of the top row, then always moves to the cheapest of the three "
            "pixels below. No table is needed, so the search is O of n plus m. The seam is "
