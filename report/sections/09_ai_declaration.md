@@ -31,7 +31,9 @@ made the decisions, checked what the AI produced and had it corrected where it w
    builder's reasoning, graded the result against each rubric row over three rounds,
    re-ran the tests and benchmarks, and listed fixes. We kept a shared decisions log
    (`decisions.md`, passed between members) recording what the AI got right, what it got
-   wrong, and what we decided to do about each point.
+   wrong, and what we decided to do about each point. The original was lost with an AI
+   session; the `decisions.md` in the repository is a reconstruction from the git history,
+   pull requests and review reports.
 4. *Team milestones.* The work was split into six milestones, one per member, each on its
    own branch. Each member worked through their milestone in their own AI-assisted
    session (Claude Code driven by a per-member brief, Prompt 4; milestone 3 used Claude on
