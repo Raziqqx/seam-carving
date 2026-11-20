@@ -16,5 +16,5 @@
 | 5 | Yasmin Tazi | 2402451 |
 | 6 | Kimberly Charlotte Madlangbayan Ambrosio | 2401836 |
 
-Code: <https://github.com/Raziqqx/seam-carving> &nbsp;|&nbsp; Presentation video: see [Links](#links)
+Code: <https://github.com/Raziqqx/seam-carving> &nbsp;|&nbsp; Presentation video: <https://youtu.be/IG2zHIsyGcs>
 :::
