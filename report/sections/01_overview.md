@@ -26,7 +26,7 @@ horizontal seams; seam insertion for enlarging; forward energy; a command-line t
 interactive app; a step-by-step animation; a test suite of @@test_cases@@ Catch2 test cases
 (@@test_assertions@@ checks) plus one command-line end-to-end test; and a benchmark program that regenerates every number, table
 and figure below. OpenCV is used only for reading and writing images, colour conversion,
-the Sobel filter, plain scaling for the baselines, and video output. No content-aware
+matrix transpose, pixel averaging, colouring the energy map for display, the Sobel filter, plain scaling for the baselines, and video output. No content-aware
 resizing function from any library is used.
 
 **Main findings.**

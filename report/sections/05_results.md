@@ -125,7 +125,7 @@ take). A vertical seam can stay inside
 one column of squares and so avoid every vertical border, but it cannot avoid crossing the
 @@checker_borders_vertical@@ horizontal borders, and each crossing costs
 $2 \times 1020 = 2040$. The cheapest vertical seam therefore costs exactly
-$@@checker_borders_vertical@@ \times 2040 = @@checker_cheapest_vertical@@$ (horizontal seams:
+$@@checker_borders_vertical@@ \times 2040 =$ @@checker_cheapest_vertical@@ (horizontal seams:
 @@checker_borders_horizontal@@ borders, @@checker_cheapest_horizontal@@). DP's first seam has
 exactly this cost (the plotting script stops with an error otherwise), and
 @@checker_dp_at_bound_vertical@@ one of DP's vertical seams and every horizontal seam
@@ -133,7 +133,7 @@ reaches this lower bound. This
 gives a check of DP's optimality that does not rely on comparing against another of our own
 programs. Greedy does just as well here (ratio @@cost_ratio_checkerboard_vertical@@ and
 @@cost_ratio_checkerboard_horizontal@@; every greedy step was optimal): it starts in column
-0, which has zero energy, goes straight down, and the border crossings it pays for cannot be
+0, whose only non-zero energies are at the horizontal borders, goes straight down, and the border crossings it pays for cannot be
 avoided by any seam. The checkerboard is left out of the "between ... and ..." range above, so that range
 describes the photos only.
 
@@ -178,8 +178,8 @@ removed pixels.
 ![Figure 15. Castle: energy map and seams.](figures/fig_seams_castle.png){width=100%}
 
 **Tower (clear subject, plain background).** This is the ideal case. Scaling makes the
-tower thinner; cropping keeps its shape but cuts off the left of the scene, including the
-person. DP takes its seams from the sky and grass on both sides of the tower (Figure 13,
+tower thinner; cropping (a centre crop) keeps its shape but cuts off both sides of the scene: the
+right edge of the tower and, on the left, the person. DP takes its seams from the sky and grass on both sides of the tower (Figure 13,
 middle) and leaves the tower at its original width; the person is kept and simply ends up
 closer to the tower. Greedy seams (Figure 13, right) start at a cheap sky pixel but cannot
 plan ahead: many of them run straight down into the tower, and in Figure 10 the greedy
@@ -229,7 +229,7 @@ than the original means the picture has become "busier" (more artificial edges p
 
 Removing the calmest pixels necessarily raises the mean energy of what is left. Between the
 two DP variants, forward energy raises it less on every image, which matches the smoother
-lines in the last panels of Figures 10 to 12. Greedy shows the smallest increase for a bad
-reason: its seams run through high-energy content (Figures 13 to 15), so it removes edges
+lines in the last panels of Figures 10 to 12. Greedy shows the smallest increase (on the bridge even a decrease)
+for a bad reason: its seams run through high-energy content (Figures 13 to 15), so it removes edges
 that should have been kept. This number is therefore only meaningful for comparing the two
 optimal methods, and must be read together with the pictures.

@@ -89,9 +89,12 @@ pandoc title_page.md --from markdown --to html5 --output build/title_page.html
 pandoc "build/report.md" \
     --include-before-body build/title_page.html \
     --from markdown --to html5 --standalone --embed-resources \
-    --mathml --toc --toc-depth=2 --number-sections \
+    --mathml --toc --toc-depth=2 --metadata toc-title="Contents" --number-sections \
     --css style.css --metadata pagetitle="Team 5 - Seam Carving" --metadata lang=en \
     --output "build/report.html"
+# Pandoc marks every bracket in an equation as stretchy, which prints them oversized and
+# spaced out; plain brackets look like normal text.
+sed -i 's/<mo stretchy="true" form="\(prefix\|postfix\)">\([][()|]\)</<mo stretchy="false" form="\1">\2</g' build/report.html
 
 # 4. HTML -> PDF with a headless browser.
 find_chrome() {
