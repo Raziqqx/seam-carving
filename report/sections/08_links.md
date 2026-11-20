@@ -3,7 +3,7 @@
 | Item | Link |
 |---|---|
 | Code (GitHub) | <https://github.com/Raziqqx/seam-carving> |
-| Presentation video | **TODO: add the video link here after recording** |
+| Presentation video | <https://youtu.be/IG2zHIsyGcs> |
 
 **How to reproduce this report.** Clone the repository, then run `benchmarks/run_all.sh`
 (benchmarks, result pictures, figures, tables) and `report/build_report.sh` (this PDF). The
